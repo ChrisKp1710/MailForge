@@ -56,7 +56,7 @@ struct IMAPFolder {
 /// Information about a selected IMAP folder
 struct IMAPFolderInfo {
     /// Folder name
-    let name: String
+    var name: String
 
     /// Number of messages in folder
     let exists: Int

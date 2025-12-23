@@ -176,8 +176,12 @@ final class IMAPResponseDecoder: ChannelInboundHandler {
 final class IMAPResponseHandler: ChannelInboundHandler {
     typealias InboundIn = IMAPResponse
 
-    /// Pending responses waiting for completion
-    private var pendingResponses: [String: CheckedContinuation<IMAPResponse, Error>] = [:]
+    /// Active collectors for pending commands
+    private var collectors: [String: IMAPResponseCollector] = [:]
+    private let lock = NSLock()
+
+    /// Current tag being processed (for untagged responses)
+    private var currentTag: String?
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let response = self.unwrapInboundIn(data)
@@ -187,46 +191,87 @@ final class IMAPResponseHandler: ChannelInboundHandler {
         case .greeting(let message):
             Logger.info("Server greeting: \(message)", category: .imap)
 
-        case .capability(let capabilities):
-            Logger.debug("Server capabilities: \(capabilities.joined(separator: ", "))", category: .imap)
-
         case .tagged(let tag, let status, let message):
-            handleTaggedResponse(tag: tag, status: status, message: message)
+            handleTaggedResponse(response)
 
-        case .untagged(let data):
-            Logger.debug("Untagged response: \(data)", category: .imap)
-
-        case .continuation(let message):
-            Logger.debug("Continuation: \(message)", category: .imap)
-
-        case .exists(let count):
-            Logger.debug("Messages exist: \(count)", category: .imap)
-
-        case .recent(let count):
-            Logger.debug("Recent messages: \(count)", category: .imap)
-
-        case .flags, .list, .fetch:
-            // TODO: Handle these response types
-            break
+        case .capability, .exists, .recent, .flags, .list, .fetch, .untagged, .continuation:
+            // These are untagged responses - add to current collector
+            handleUntaggedResponse(response)
 
         case .unknown(let raw):
             Logger.warning("Unknown response: \(raw)", category: .imap)
         }
     }
 
-    /// Handle tagged response
-    private func handleTaggedResponse(tag: String, status: IMAPResponseStatus, message: String) {
-        Logger.debug("Response [\(tag)]: \(status) - \(message)", category: .imap)
+    /// Register a collector for a tag
+    func registerCollector(tag: String, collector: IMAPResponseCollector) {
+        lock.lock()
+        defer { lock.unlock() }
 
-        // Resume continuation waiting for this tag
-        if let continuation = pendingResponses.removeValue(forKey: tag) {
-            let response = IMAPResponse.tagged(tag: tag, status: status, message: message)
-            continuation.resume(returning: response)
+        collectors[tag] = collector
+        currentTag = tag
+        Logger.debug("Registered collector for tag: \(tag)", category: .imap)
+    }
+
+    /// Handle tagged response (final response for command)
+    private func handleTaggedResponse(_ response: IMAPResponse) {
+        guard case .tagged(let tag, let status, let message) = response else {
+            return
+        }
+
+        Logger.debug("Tagged response [\(tag)]: \(status) - \(message)", category: .imap)
+
+        lock.lock()
+        let collector = collectors.removeValue(forKey: tag)
+        lock.unlock()
+
+        collector?.complete(with: response)
+    }
+
+    /// Handle untagged response
+    private func handleUntaggedResponse(_ response: IMAPResponse) {
+        lock.lock()
+        let tag = currentTag
+        let collector = tag.flatMap { collectors[$0] }
+        lock.unlock()
+
+        if let collector = collector {
+            collector.addUntagged(response)
+        } else {
+            // No collector - just log
+            logUntaggedResponse(response)
+        }
+    }
+
+    /// Log untagged response
+    private func logUntaggedResponse(_ response: IMAPResponse) {
+        switch response {
+        case .capability(let capabilities):
+            Logger.debug("Capabilities: \(capabilities.joined(separator: ", "))", category: .imap)
+        case .exists(let count):
+            Logger.debug("Messages exist: \(count)", category: .imap)
+        case .recent(let count):
+            Logger.debug("Recent messages: \(count)", category: .imap)
+        case .untagged(let data):
+            Logger.debug("Untagged: \(data)", category: .imap)
+        default:
+            break
         }
     }
 
     func errorCaught(context: ChannelHandlerContext, error: Error) {
         Logger.error("IMAP handler error", error: error, category: .imap)
+
+        // Fail all pending collectors
+        lock.lock()
+        let allCollectors = Array(collectors.values)
+        collectors.removeAll()
+        lock.unlock()
+
+        for collector in allCollectors {
+            collector.fail(with: error)
+        }
+
         context.close(promise: nil)
     }
 }

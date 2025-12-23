@@ -184,17 +184,17 @@ final class IMAPClient {
     func capability() async throws -> [String] {
         Logger.debug("Sending CAPABILITY command", category: logCategory)
 
-        let response = try await sendTaggedCommand("CAPABILITY")
+        let result = try await sendTaggedCommand("CAPABILITY")
 
         // Check if successful
-        if case .tagged(_, let status, let message) = response, status != .ok {
-            throw IMAPError.serverError(message: "CAPABILITY failed: \(message)")
+        guard result.isSuccess else {
+            throw IMAPError.serverError(message: result.errorMessage ?? "CAPABILITY failed")
         }
 
-        // TODO: Extract capabilities from untagged responses
-        // For now, return empty array
-        Logger.info("CAPABILITY command successful", category: logCategory)
-        return []
+        // Extract capabilities from untagged responses
+        let caps = result.capabilities
+        Logger.info("CAPABILITY command successful: \(caps.count) capabilities", category: logCategory)
+        return caps
     }
 
     /// Login to IMAP server
@@ -211,18 +211,14 @@ final class IMAPClient {
         let quotedUsername = "\"\(username)\""
         let quotedPassword = "\"\(password)\""
 
-        let response = try await sendTaggedCommand("LOGIN \(quotedUsername) \(quotedPassword)")
+        let result = try await sendTaggedCommand("LOGIN \(quotedUsername) \(quotedPassword)")
 
         // Check response
-        if case .tagged(_, let status, let message) = response {
-            if status == .ok {
-                state = .authenticated
-                Logger.info("Successfully authenticated", category: logCategory)
-            } else {
-                Logger.error("Authentication failed: \(message)", category: logCategory)
-                throw IMAPError.authenticationFailed
-            }
+        if result.isSuccess {
+            state = .authenticated
+            Logger.info("Successfully authenticated", category: logCategory)
         } else {
+            Logger.error("Authentication failed: \(result.errorMessage ?? "Unknown error")", category: logCategory)
             throw IMAPError.authenticationFailed
         }
     }
@@ -244,17 +240,17 @@ final class IMAPClient {
         let quotedRef = reference.isEmpty ? "\"\"" : "\"\(reference)\""
         let quotedPattern = "\"\(pattern)\""
 
-        let response = try await sendTaggedCommand("LIST \(quotedRef) \(quotedPattern)")
+        let result = try await sendTaggedCommand("LIST \(quotedRef) \(quotedPattern)")
 
         // Check response
-        if case .tagged(_, let status, let message) = response, status != .ok {
-            throw IMAPError.serverError(message: "LIST failed: \(message)")
+        guard result.isSuccess else {
+            throw IMAPError.serverError(message: result.errorMessage ?? "LIST failed")
         }
 
-        // TODO: Parse LIST responses from untagged data
-        // For now, return empty array
-        Logger.info("LIST command successful", category: logCategory)
-        return []
+        // Extract folders from untagged LIST responses
+        let folders = result.folders
+        Logger.info("LIST command successful: found \(folders.count) folders", category: logCategory)
+        return folders
     }
 
     /// Select a folder for reading and writing
@@ -268,30 +264,29 @@ final class IMAPClient {
         }
 
         let quotedFolder = "\"\(folder)\""
-        let response = try await sendTaggedCommand("SELECT \(quotedFolder)")
+        let result = try await sendTaggedCommand("SELECT \(quotedFolder)")
 
         // Check response
-        if case .tagged(_, let status, let message) = response {
-            if status == .ok {
-                state = .selected(folder: folder)
-                Logger.info("Folder '\(folder)' selected successfully", category: logCategory)
-
-                // TODO: Parse folder info from untagged responses (EXISTS, RECENT, FLAGS, etc.)
-                return IMAPFolderInfo(
-                    name: folder,
-                    exists: 0,
-                    recent: 0,
-                    unseen: nil,
-                    flags: [],
-                    permanentFlags: []
-                )
-            } else {
-                Logger.error("SELECT failed: \(message)", category: logCategory)
-                throw IMAPError.folderNotFound(name: folder)
-            }
+        guard result.isSuccess else {
+            Logger.error("SELECT failed: \(result.errorMessage ?? "Unknown error")", category: logCategory)
+            throw IMAPError.folderNotFound(name: folder)
         }
 
-        throw IMAPError.folderNotFound(name: folder)
+        state = .selected(folder: folder)
+        Logger.info("Folder '\(folder)' selected successfully", category: logCategory)
+
+        // Parse folder info from untagged responses (EXISTS, RECENT, FLAGS, etc.)
+        var info = result.folderInfo ?? IMAPFolderInfo(
+            name: folder,
+            exists: 0,
+            recent: 0,
+            unseen: nil,
+            flags: [],
+            permanentFlags: []
+        )
+        info.name = folder
+
+        return info
     }
 
     /// Examine a folder in read-only mode
@@ -305,30 +300,30 @@ final class IMAPClient {
         }
 
         let quotedFolder = "\"\(folder)\""
-        let response = try await sendTaggedCommand("EXAMINE \(quotedFolder)")
+        let result = try await sendTaggedCommand("EXAMINE \(quotedFolder)")
 
         // Check response
-        if case .tagged(_, let status, let message) = response {
-            if status == .ok {
-                state = .selected(folder: folder)
-                Logger.info("Folder '\(folder)' examined successfully (read-only)", category: logCategory)
-
-                // TODO: Parse folder info from untagged responses
-                return IMAPFolderInfo(
-                    name: folder,
-                    exists: 0,
-                    recent: 0,
-                    unseen: nil,
-                    flags: [],
-                    permanentFlags: []
-                )
-            } else {
-                Logger.error("EXAMINE failed: \(message)", category: logCategory)
-                throw IMAPError.folderNotFound(name: folder)
-            }
+        guard result.isSuccess else {
+            Logger.error("EXAMINE failed: \(result.errorMessage ?? "Unknown error")", category: logCategory)
+            throw IMAPError.folderNotFound(name: folder)
         }
 
-        throw IMAPError.folderNotFound(name: folder)
+        state = .selected(folder: folder)
+        Logger.info("Folder '\(folder)' examined successfully (read-only)", category: logCategory)
+
+        // Parse folder info from untagged responses
+        var info = result.folderInfo ?? IMAPFolderInfo(
+            name: folder,
+            exists: 0,
+            recent: 0,
+            unseen: nil,
+            flags: [],
+            permanentFlags: []
+        )
+        info.name = folder
+        info.isReadOnly = true
+
+        return info
     }
 
     /// Close currently selected folder
@@ -340,14 +335,331 @@ final class IMAPClient {
             return
         }
 
-        let response = try await sendTaggedCommand("CLOSE")
+        let result = try await sendTaggedCommand("CLOSE")
 
-        if case .tagged(_, let status, let message) = response, status == .ok {
-            state = .authenticated
-            Logger.info("Folder closed successfully", category: logCategory)
-        } else {
-            throw IMAPError.serverError(message: "CLOSE failed")
+        guard result.isSuccess else {
+            throw IMAPError.serverError(message: result.errorMessage ?? "CLOSE failed")
         }
+
+        state = .authenticated
+        Logger.info("Folder closed successfully", category: logCategory)
+    }
+
+    // MARK: - Message Fetching
+
+    /// Fetch messages by sequence number
+    /// - Parameters:
+    ///   - sequenceSet: Sequence set (e.g., "1", "1:*", "1,3,5")
+    ///   - items: Items to fetch (e.g., ["FLAGS", "RFC822.SIZE", "ENVELOPE"])
+    /// - Returns: Array of fetched message data
+    func fetch(sequenceSet: String, items: [String]) async throws -> [IMAPMessageData] {
+        Logger.debug("Fetching messages: \(sequenceSet), items: \(items.joined(separator: ", "))", category: logCategory)
+
+        guard case .selected = state else {
+            throw IMAPError.serverError(message: "No folder selected")
+        }
+
+        let itemsString = items.joined(separator: " ")
+        let result = try await sendTaggedCommand("FETCH \(sequenceSet) (\(itemsString))")
+
+        guard result.isSuccess else {
+            throw IMAPError.messageFetchFailed
+        }
+
+        // Extract messages from untagged FETCH responses
+        let messages = result.messages
+        Logger.info("FETCH command successful: \(messages.count) messages", category: logCategory)
+        return messages
+    }
+
+    /// Fetch messages by UID (more reliable than sequence numbers)
+    /// - Parameters:
+    ///   - uidSet: UID set (e.g., "1", "1:100", "1,3,5")
+    ///   - items: Items to fetch
+    /// - Returns: Array of fetched message data
+    func uidFetch(uidSet: String, items: [String]) async throws -> [IMAPMessageData] {
+        Logger.debug("UID Fetching messages: \(uidSet), items: \(items.joined(separator: ", "))", category: logCategory)
+
+        guard case .selected = state else {
+            throw IMAPError.serverError(message: "No folder selected")
+        }
+
+        let itemsString = items.joined(separator: " ")
+        let result = try await sendTaggedCommand("UID FETCH \(uidSet) (\(itemsString))")
+
+        guard result.isSuccess else {
+            throw IMAPError.messageFetchFailed
+        }
+
+        // Extract messages from untagged UID FETCH responses
+        let messages = result.messages
+        Logger.info("UID FETCH command successful: \(messages.count) messages", category: logCategory)
+        return messages
+    }
+
+    /// Fetch message headers (envelope)
+    /// - Parameter uid: Message UID
+    /// - Returns: Message data with envelope
+    func fetchEnvelope(uid: Int64) async throws -> IMAPMessageData {
+        Logger.debug("Fetching envelope for UID: \(uid)", category: logCategory)
+
+        let messages = try await uidFetch(uidSet: "\(uid)", items: ["UID", "FLAGS", "ENVELOPE", "RFC822.SIZE", "INTERNALDATE"])
+
+        guard let message = messages.first else {
+            throw IMAPError.messageFetchFailed
+        }
+
+        return message
+    }
+
+    /// Fetch message body without marking as read (BODY.PEEK)
+    /// - Parameter uid: Message UID
+    /// - Returns: Message body data
+    func fetchBodyPeek(uid: Int64) async throws -> Data {
+        Logger.debug("Fetching body (peek) for UID: \(uid)", category: logCategory)
+
+        let messages = try await uidFetch(uidSet: "\(uid)", items: ["BODY.PEEK[]"])
+
+        guard let message = messages.first, let body = message.rfc822 else {
+            throw IMAPError.messageFetchFailed
+        }
+
+        Logger.info("Body fetched successfully (not marked as read)", category: logCategory)
+        return body
+    }
+
+    /// Fetch message body and mark as read
+    /// - Parameter uid: Message UID
+    /// - Returns: Message body data
+    func fetchBody(uid: Int64) async throws -> Data {
+        Logger.debug("Fetching body for UID: \(uid)", category: logCategory)
+
+        let messages = try await uidFetch(uidSet: "\(uid)", items: ["BODY[]"])
+
+        guard let message = messages.first, let body = message.rfc822 else {
+            throw IMAPError.messageFetchFailed
+        }
+
+        Logger.info("Body fetched successfully (marked as read)", category: logCategory)
+        return body
+    }
+
+    /// Fetch specific body section
+    /// - Parameters:
+    ///   - uid: Message UID
+    ///   - section: Body section (e.g., "1", "1.MIME", "TEXT")
+    ///   - peek: If true, don't mark as read
+    /// - Returns: Section data
+    func fetchBodySection(uid: Int64, section: String, peek: Bool = true) async throws -> Data {
+        Logger.debug("Fetching body section [\(section)] for UID: \(uid), peek: \(peek)", category: logCategory)
+
+        let bodyCommand = peek ? "BODY.PEEK[\(section)]" : "BODY[\(section)]"
+        let messages = try await uidFetch(uidSet: "\(uid)", items: [bodyCommand])
+
+        guard let message = messages.first, let body = message.rfc822 else {
+            throw IMAPError.messageFetchFailed
+        }
+
+        return body
+    }
+
+    /// Fetch message flags
+    /// - Parameter uid: Message UID
+    /// - Returns: Array of flags
+    func fetchFlags(uid: Int64) async throws -> [String] {
+        Logger.debug("Fetching flags for UID: \(uid)", category: logCategory)
+
+        let messages = try await uidFetch(uidSet: "\(uid)", items: ["FLAGS"])
+
+        guard let message = messages.first else {
+            throw IMAPError.messageFetchFailed
+        }
+
+        return message.flags
+    }
+
+    /// Fetch headers for multiple messages (optimized)
+    /// - Parameter uidRange: UID range (e.g., "1:100")
+    /// - Returns: Array of message data with headers
+    func fetchHeaders(uidRange: String) async throws -> [IMAPMessageData] {
+        Logger.debug("Fetching headers for UID range: \(uidRange)", category: logCategory)
+
+        return try await uidFetch(
+            uidSet: uidRange,
+            items: ["UID", "FLAGS", "ENVELOPE", "RFC822.SIZE", "INTERNALDATE", "BODY.PEEK[HEADER]"]
+        )
+    }
+
+    // MARK: - Search
+
+    /// Search messages using criteria
+    /// - Parameter criteria: Search criteria
+    /// - Returns: Array of message sequence numbers matching criteria
+    func search(criteria: IMAPSearchCriteria) async throws -> [Int] {
+        Logger.debug("Searching with criteria: \(criteria.toIMAPString())", category: logCategory)
+
+        guard case .selected = state else {
+            throw IMAPError.serverError(message: "No folder selected")
+        }
+
+        let criteriaString = criteria.toIMAPString()
+        let result = try await sendTaggedCommand("SEARCH \(criteriaString)")
+
+        guard result.isSuccess else {
+            throw IMAPError.serverError(message: result.errorMessage ?? "SEARCH failed")
+        }
+
+        // Extract search results from untagged response
+        let results = result.searchResults.map { Int($0) }
+        Logger.info("SEARCH command successful: \(results.count) results", category: logCategory)
+        return results
+    }
+
+    /// Search messages by UID using criteria
+    /// - Parameter criteria: Search criteria
+    /// - Returns: Array of message UIDs matching criteria
+    func uidSearch(criteria: IMAPSearchCriteria) async throws -> [Int64] {
+        Logger.debug("UID Searching with criteria: \(criteria.toIMAPString())", category: logCategory)
+
+        guard case .selected = state else {
+            throw IMAPError.serverError(message: "No folder selected")
+        }
+
+        let criteriaString = criteria.toIMAPString()
+        let result = try await sendTaggedCommand("UID SEARCH \(criteriaString)")
+
+        guard result.isSuccess else {
+            throw IMAPError.serverError(message: result.errorMessage ?? "UID SEARCH failed")
+        }
+
+        // Extract UID search results from untagged response
+        let results = result.searchResults
+        Logger.info("UID SEARCH command successful: \(results.count) UIDs", category: logCategory)
+        return results
+    }
+
+    // MARK: - Flags & State Management
+
+    /// Store (set) flags for messages
+    /// - Parameters:
+    ///   - uidSet: UID set (e.g., "1", "1:100")
+    ///   - flags: Flags to set
+    ///   - mode: Store mode (.add, .remove, .replace)
+    func storeFlags(uidSet: String, flags: [IMAPMessageFlag], mode: StoreFlagsMode) async throws {
+        Logger.debug("Storing flags for UIDs: \(uidSet), mode: \(mode)", category: logCategory)
+
+        guard case .selected = state else {
+            throw IMAPError.serverError(message: "No folder selected")
+        }
+
+        let flagsString = flags.map { $0.rawValue }.joined(separator: " ")
+        let command: String
+
+        switch mode {
+        case .replace:
+            command = "UID STORE \(uidSet) FLAGS (\(flagsString))"
+        case .add:
+            command = "UID STORE \(uidSet) +FLAGS (\(flagsString))"
+        case .remove:
+            command = "UID STORE \(uidSet) -FLAGS (\(flagsString))"
+        }
+
+        let result = try await sendTaggedCommand(command)
+
+        guard result.isSuccess else {
+            throw IMAPError.serverError(message: result.errorMessage ?? "STORE failed")
+        }
+
+        Logger.info("Flags stored successfully", category: logCategory)
+    }
+
+    /// Mark message as read
+    /// - Parameter uid: Message UID
+    func markAsRead(uid: Int64) async throws {
+        Logger.debug("Marking UID \(uid) as read", category: logCategory)
+        try await storeFlags(uidSet: "\(uid)", flags: [.seen], mode: .add)
+    }
+
+    /// Mark message as unread
+    /// - Parameter uid: Message UID
+    func markAsUnread(uid: Int64) async throws {
+        Logger.debug("Marking UID \(uid) as unread", category: logCategory)
+        try await storeFlags(uidSet: "\(uid)", flags: [.seen], mode: .remove)
+    }
+
+    /// Flag/star message
+    /// - Parameter uid: Message UID
+    func flagMessage(uid: Int64) async throws {
+        Logger.debug("Flagging UID \(uid)", category: logCategory)
+        try await storeFlags(uidSet: "\(uid)", flags: [.flagged], mode: .add)
+    }
+
+    /// Unflag/unstar message
+    /// - Parameter uid: Message UID
+    func unflagMessage(uid: Int64) async throws {
+        Logger.debug("Unflagging UID \(uid)", category: logCategory)
+        try await storeFlags(uidSet: "\(uid)", flags: [.flagged], mode: .remove)
+    }
+
+    /// Mark message for deletion (doesn't delete until EXPUNGE)
+    /// - Parameter uid: Message UID
+    func markAsDeleted(uid: Int64) async throws {
+        Logger.debug("Marking UID \(uid) for deletion", category: logCategory)
+        try await storeFlags(uidSet: "\(uid)", flags: [.deleted], mode: .add)
+    }
+
+    /// Permanently delete messages marked as deleted
+    func expunge() async throws {
+        Logger.info("Expunging deleted messages", category: logCategory)
+
+        guard case .selected = state else {
+            throw IMAPError.serverError(message: "No folder selected")
+        }
+
+        let result = try await sendTaggedCommand("EXPUNGE")
+
+        guard result.isSuccess else {
+            throw IMAPError.serverError(message: result.errorMessage ?? "EXPUNGE failed")
+        }
+
+        Logger.info("Messages expunged successfully", category: logCategory)
+    }
+
+    /// Copy messages to another folder
+    /// - Parameters:
+    ///   - uidSet: UID set to copy
+    ///   - destinationFolder: Destination folder name
+    func copyMessages(uidSet: String, to destinationFolder: String) async throws {
+        Logger.info("Copying UIDs \(uidSet) to folder: \(destinationFolder)", category: logCategory)
+
+        guard case .selected = state else {
+            throw IMAPError.serverError(message: "No folder selected")
+        }
+
+        let quotedFolder = "\"\(destinationFolder)\""
+        let result = try await sendTaggedCommand("UID COPY \(uidSet) \(quotedFolder)")
+
+        guard result.isSuccess else {
+            throw IMAPError.serverError(message: result.errorMessage ?? "COPY failed")
+        }
+
+        Logger.info("Messages copied successfully", category: logCategory)
+    }
+
+    /// Move messages to another folder (copy + delete)
+    /// - Parameters:
+    ///   - uidSet: UID set to move
+    ///   - destinationFolder: Destination folder name
+    func moveMessages(uidSet: String, to destinationFolder: String) async throws {
+        Logger.info("Moving UIDs \(uidSet) to folder: \(destinationFolder)", category: logCategory)
+
+        // Copy messages
+        try await copyMessages(uidSet: uidSet, to: destinationFolder)
+
+        // Mark as deleted
+        try await markAsDeleted(uid: Int64(uidSet.split(separator: ":").first.map(String.init) ?? "0") ?? 0)
+
+        Logger.info("Messages moved successfully", category: logCategory)
     }
 
     // MARK: - Helper Methods
@@ -381,17 +693,24 @@ final class IMAPClient {
 
     /// Send IMAP command and wait for tagged response
     /// - Parameter command: IMAP command (without tag)
-    /// - Returns: IMAPResponse
-    private func sendTaggedCommand(_ command: String) async throws -> IMAPResponse {
+    /// - Returns: IMAPCommandResult with tagged and untagged responses
+    private func sendTaggedCommand(_ command: String) async throws -> IMAPCommandResult {
         let tag = generateTag()
         let fullCommand = "\(tag) \(command)"
 
+        // Create collector for this command
+        let collector = IMAPResponseCollector()
+
+        // Register collector with response handler
+        responseHandler.registerCollector(tag: tag, collector: collector)
+
+        // Send command
         try await sendCommand(fullCommand)
 
-        // TODO: Wait for tagged response with matching tag
-        // For now, return a placeholder
-        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-        return .tagged(tag: tag, status: .ok, message: "OK")
+        // Wait for response
+        let result = try await collector.wait()
+
+        return result
     }
 
     // MARK: - Cleanup
@@ -415,4 +734,13 @@ enum IMAPState {
     case authenticated
     case selected(folder: String)
     case logout
+}
+
+// MARK: - Store Flags Mode
+
+/// Mode for storing flags
+enum StoreFlagsMode {
+    case replace  // Replace all flags
+    case add      // Add flags to existing
+    case remove   // Remove flags from existing
 }
