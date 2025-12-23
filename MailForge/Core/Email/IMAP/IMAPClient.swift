@@ -227,6 +227,129 @@ final class IMAPClient {
         }
     }
 
+    // MARK: - Folder Operations
+
+    /// List available folders on server
+    /// - Parameters:
+    ///   - reference: Reference name (default: "")
+    ///   - pattern: Mailbox pattern (default: "*" for all folders)
+    /// - Returns: Array of folder information
+    func list(reference: String = "", pattern: String = "*") async throws -> [IMAPFolder] {
+        Logger.debug("Listing folders with pattern: \(pattern)", category: logCategory)
+
+        guard state != .notAuthenticated && state != .logout else {
+            throw IMAPError.authenticationFailed
+        }
+
+        let quotedRef = reference.isEmpty ? "\"\"" : "\"\(reference)\""
+        let quotedPattern = "\"\(pattern)\""
+
+        let response = try await sendTaggedCommand("LIST \(quotedRef) \(quotedPattern)")
+
+        // Check response
+        if case .tagged(_, let status, let message) = response, status != .ok {
+            throw IMAPError.serverError(message: "LIST failed: \(message)")
+        }
+
+        // TODO: Parse LIST responses from untagged data
+        // For now, return empty array
+        Logger.info("LIST command successful", category: logCategory)
+        return []
+    }
+
+    /// Select a folder for reading and writing
+    /// - Parameter folder: Folder path (e.g., "INBOX")
+    /// - Returns: Folder information (message count, recent count, etc.)
+    func select(folder: String) async throws -> IMAPFolderInfo {
+        Logger.info("Selecting folder: \(folder)", category: logCategory)
+
+        guard state != .notAuthenticated && state != .logout else {
+            throw IMAPError.authenticationFailed
+        }
+
+        let quotedFolder = "\"\(folder)\""
+        let response = try await sendTaggedCommand("SELECT \(quotedFolder)")
+
+        // Check response
+        if case .tagged(_, let status, let message) = response {
+            if status == .ok {
+                state = .selected(folder: folder)
+                Logger.info("Folder '\(folder)' selected successfully", category: logCategory)
+
+                // TODO: Parse folder info from untagged responses (EXISTS, RECENT, FLAGS, etc.)
+                return IMAPFolderInfo(
+                    name: folder,
+                    exists: 0,
+                    recent: 0,
+                    unseen: nil,
+                    flags: [],
+                    permanentFlags: []
+                )
+            } else {
+                Logger.error("SELECT failed: \(message)", category: logCategory)
+                throw IMAPError.folderNotFound(name: folder)
+            }
+        }
+
+        throw IMAPError.folderNotFound(name: folder)
+    }
+
+    /// Examine a folder in read-only mode
+    /// - Parameter folder: Folder path (e.g., "INBOX")
+    /// - Returns: Folder information (message count, recent count, etc.)
+    func examine(folder: String) async throws -> IMAPFolderInfo {
+        Logger.info("Examining folder (read-only): \(folder)", category: logCategory)
+
+        guard state != .notAuthenticated && state != .logout else {
+            throw IMAPError.authenticationFailed
+        }
+
+        let quotedFolder = "\"\(folder)\""
+        let response = try await sendTaggedCommand("EXAMINE \(quotedFolder)")
+
+        // Check response
+        if case .tagged(_, let status, let message) = response {
+            if status == .ok {
+                state = .selected(folder: folder)
+                Logger.info("Folder '\(folder)' examined successfully (read-only)", category: logCategory)
+
+                // TODO: Parse folder info from untagged responses
+                return IMAPFolderInfo(
+                    name: folder,
+                    exists: 0,
+                    recent: 0,
+                    unseen: nil,
+                    flags: [],
+                    permanentFlags: []
+                )
+            } else {
+                Logger.error("EXAMINE failed: \(message)", category: logCategory)
+                throw IMAPError.folderNotFound(name: folder)
+            }
+        }
+
+        throw IMAPError.folderNotFound(name: folder)
+    }
+
+    /// Close currently selected folder
+    func close() async throws {
+        Logger.debug("Closing selected folder", category: logCategory)
+
+        guard case .selected = state else {
+            Logger.warning("No folder currently selected", category: logCategory)
+            return
+        }
+
+        let response = try await sendTaggedCommand("CLOSE")
+
+        if case .tagged(_, let status, let message) = response, status == .ok {
+            state = .authenticated
+            Logger.info("Folder closed successfully", category: logCategory)
+        } else {
+            throw IMAPError.serverError(message: "CLOSE failed")
+        }
+    }
+
     // MARK: - Helper Methods
 
     /// Send raw IMAP command

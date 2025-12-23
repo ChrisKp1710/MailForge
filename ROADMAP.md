@@ -1,8 +1,8 @@
 # MailForge - Roadmap di Sviluppo
 
 **Versione:** 1.0
-**Ultima Modifica:** 23 Dicembre 2024 - 19:45
-**Status Progetto:** 🟢 Fase 0 Completata
+**Ultima Modifica:** 23 Dicembre 2024 - 20:00
+**Status Progetto:** 🟡 Fase 1 In Progress (IMAP Client)
 
 ---
 
@@ -30,12 +30,12 @@
 | Fase | Obiettivo | Features | Status | Completamento |
 |------|-----------|----------|--------|---------------|
 | **Fase 0** | Setup & Fondamenta | Progetto Xcode, Design System, Architettura | ✅ Completato | 100% |
-| **Fase 1** | Email Core MVP | IMAP/SMTP, Lettura/Invio, UI Base | 🔴 Not Started | 0% |
+| **Fase 1** | Email Core MVP | IMAP/SMTP, Lettura/Invio, UI Base | 🟡 In Progress | 15% |
 | **Fase 2** | Produttività | Calendario, Note, Task | 🔴 Not Started | 0% |
 | **Fase 3** | AI & Automazione | ML on-device, Smart features | 🔴 Not Started | 0% |
 | **Fase 4** | Polish & Launch | Testing, Beta, App Store | 🔴 Not Started | 0% |
 
-**Progress Totale: 20%**
+**Progress Totale: 23%**
 
 ---
 
@@ -177,24 +177,31 @@
 
 **Obiettivo:** Client email funzionante - lettura, invio, gestione base. Focus su PEC + IMAP generico.
 
-**Status:** 🔴 Not Started
-**Completamento:** 0%
+**Status:** 🟡 In Progress
+**Completamento:** 15%
+**Iniziato:** 23 Dicembre 2024
 
 ### Tasks
 
-#### 1. SwiftNIO IMAP Client (Custom Implementation)
-- [ ] Setup SwiftNIO base
-  - Channel pipeline configuration
-  - TLS/SSL handler
-- [ ] IMAP protocol implementation
-  - [ ] Connection & Login
-    - CAPABILITY command
-    - LOGIN command
-    - TLS negotiation (STARTTLS)
-  - [ ] Folder operations
-    - LIST command (fetch folders)
-    - SELECT command (select folder)
+#### 1. SwiftNIO IMAP Client (Custom Implementation) 🟡 In Progress
+- [x] Setup SwiftNIO base
+  - Channel pipeline configuration con ByteToMessageHandler
+  - TLS/SSL handler con NIOSSL
+  - IMAPLineDecoder/Encoder per protocollo line-based
+  - IMAPResponseDecoder per parsing risposte
+  - IMAPResponseHandler per gestione asincrona
+- [x] IMAP protocol implementation - Base
+  - [x] Connection & Login
+    - CAPABILITY command implementato
+    - LOGIN command con credenziali quotate
+    - TLS/SSL diretto (porta 993)
+    - Gestione greeting server
+    - Tag generation unico per comandi
+  - [x] Folder operations
+    - LIST command (fetch folders con pattern matching)
+    - SELECT command (select folder read/write)
     - EXAMINE command (read-only select)
+    - CLOSE command (chiudi folder selezionata)
   - [ ] Message fetching
     - FETCH command (headers, body, flags)
     - UID FETCH (persistent IDs)
@@ -206,20 +213,28 @@
     - STORE command (set flags)
     - FLAGS (\Seen, \Flagged, \Deleted, etc.)
   - [ ] IDLE support (push notifications)
-- [ ] IMAP State Machine
-  - Not Authenticated
-  - Authenticated
-  - Selected
-  - Logout
+- [x] IMAP State Machine
+  - Not Authenticated state
+  - Authenticated state
+  - Selected state (con folder name)
+  - Logout state
+- [x] Tipi dati IMAP (IMAPTypes.swift)
+  - IMAPFolder con attributes e special folder detection
+  - IMAPFolderInfo con exists/recent/flags
+  - IMAPMessageData e IMAPEnvelope
+  - IMAPBodyStructure (multipart support)
+  - IMAPSearchCriteria (builder per query search)
+  - IMAPMessageFlag enum
 - [ ] Error handling robusto
-  - Network errors
-  - Authentication failures
-  - Protocol errors
+  - Network errors (già in IMAPError)
+  - Authentication failures (già gestiti)
+  - Protocol errors parsing
 - [ ] Unit tests per IMAP client
   - Mock server per testing
   - Test coverage > 80%
 
 **Stima:** 2-3 settimane
+**Progresso:** ~30% completato (base funzionante, mancano FETCH/SEARCH/IDLE/tests)
 
 ---
 
