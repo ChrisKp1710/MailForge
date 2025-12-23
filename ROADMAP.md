@@ -1,8 +1,8 @@
 # MailForge - Roadmap di Sviluppo
 
 **Versione:** 1.0
-**Ultima Modifica:** 23 Dicembre 2024 - 20:00
-**Status Progetto:** 🟡 Fase 1 In Progress (IMAP Client)
+**Ultima Modifica:** 23 Dicembre 2024 - 23:50
+**Status Progetto:** 🟢 Task 1 Completato - IMAP Client 100%
 
 ---
 
@@ -30,12 +30,12 @@
 | Fase | Obiettivo | Features | Status | Completamento |
 |------|-----------|----------|--------|---------------|
 | **Fase 0** | Setup & Fondamenta | Progetto Xcode, Design System, Architettura | ✅ Completato | 100% |
-| **Fase 1** | Email Core MVP | IMAP/SMTP, Lettura/Invio, UI Base | 🟡 In Progress | 15% |
+| **Fase 1** | Email Core MVP | IMAP/SMTP, Lettura/Invio, UI Base | 🟡 In Progress | 20% |
 | **Fase 2** | Produttività | Calendario, Note, Task | 🔴 Not Started | 0% |
 | **Fase 3** | AI & Automazione | ML on-device, Smart features | 🔴 Not Started | 0% |
 | **Fase 4** | Polish & Launch | Testing, Beta, App Store | 🔴 Not Started | 0% |
 
-**Progress Totale: 23%**
+**Progress Totale: 24%**
 
 ---
 
@@ -178,12 +178,13 @@
 **Obiettivo:** Client email funzionante - lettura, invio, gestione base. Focus su PEC + IMAP generico.
 
 **Status:** 🟡 In Progress
-**Completamento:** 15%
+**Completamento:** 20%
 **Iniziato:** 23 Dicembre 2024
+**Ultimo Update:** Task 1 (IMAP Client) completato al 100%
 
 ### Tasks
 
-#### 1. SwiftNIO IMAP Client (Custom Implementation) 🟡 In Progress
+#### 1. SwiftNIO IMAP Client (Custom Implementation) ✅ COMPLETATO
 - [x] Setup SwiftNIO base
   - Channel pipeline configuration con ByteToMessageHandler
   - TLS/SSL handler con NIOSSL
@@ -234,7 +235,8 @@
   - Test coverage > 80%
 
 **Stima:** 2-3 settimane
-**Progresso:** ~30% completato (base funzionante, mancano FETCH/SEARCH/IDLE/tests)
+**Completato:** 23 Dicembre 2024
+**Progresso:** ✅ 100% completato (pronto per testing con server reale)
 
 ---
 

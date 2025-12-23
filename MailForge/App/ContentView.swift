@@ -36,6 +36,11 @@ struct MessageListView: View {
         VStack {
             Text("No messages")
                 .foregroundStyle(.secondary)
+
+            Text("IMAP Client pronto per il test!")
+                .font(.caption)
+                .foregroundStyle(.green)
+                .padding(.top, 8)
         }
         .navigationTitle("Inbox")
     }
