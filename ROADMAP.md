@@ -1,7 +1,7 @@
 # MailForge - Roadmap di Sviluppo
 
 **Versione:** 1.0
-**Ultima Modifica:** 23 Dicembre 2024 - 18:59
+**Ultima Modifica:** 23 Dicembre 2024 - 19:15
 **Status Progetto:** 🟡 In Progress
 
 ---
@@ -29,13 +29,13 @@
 
 | Fase | Obiettivo | Features | Status | Completamento |
 |------|-----------|----------|--------|---------------|
-| **Fase 0** | Setup & Fondamenta | Progetto Xcode, Design System, Architettura | 🟡 In Progress | 25% |
+| **Fase 0** | Setup & Fondamenta | Progetto Xcode, Design System, Architettura | 🟡 In Progress | 50% |
 | **Fase 1** | Email Core MVP | IMAP/SMTP, Lettura/Invio, UI Base | 🔴 Not Started | 0% |
 | **Fase 2** | Produttività | Calendario, Note, Task | 🔴 Not Started | 0% |
 | **Fase 3** | AI & Automazione | ML on-device, Smart features | 🔴 Not Started | 0% |
 | **Fase 4** | Polish & Launch | Testing, Beta, App Store | 🔴 Not Started | 0% |
 
-**Progress Totale: 5%**
+**Progress Totale: 10%**
 
 ---
 
@@ -44,7 +44,7 @@
 **Obiettivo:** Creare le fondamenta solide del progetto - architettura, design system, struttura base.
 
 **Status:** 🟡 In Progress
-**Completamento:** 25%
+**Completamento:** 50%
 
 ### Tasks
 
@@ -80,28 +80,37 @@
 
 ---
 
-#### 2. Design System Foundation
-- [ ] Definire palette colori
-  - Light mode colors
-  - Dark mode colors
-  - Semantic colors (primary, secondary, accent, etc.)
-- [ ] Typography system
-  - Font sizes (SF Pro)
-  - Font weights
-  - Line heights
-- [ ] Spacing system
-  - 4pt grid (4, 8, 12, 16, 24, 32, 48, 64)
-- [ ] Creare componenti SwiftUI base
-  - `DSButton` (Design System Button)
-  - `DSTextField`
-  - `DSCard`
-  - `DSList`
-  - `DSSidebar`
-- [ ] Icon system
-  - SF Symbols mapping
-  - Custom icons se necessario
+#### 2. Design System Foundation ✅ COMPLETATO
+- [x] Definire palette colori
+  - Light mode colors (semantic, brand, background, text, border)
+  - Dark mode colors (adaptive con AppKit)
+  - Semantic colors (success, warning, error, info)
+  - Email-specific colors (unread, starred, read)
+- [x] Typography system
+  - Font sizes (Display, Headline, Body, Label, Caption)
+  - Font weights (SF Pro system font)
+  - Line heights e letter spacing
+  - Email-specific text styles
+- [x] Spacing system
+  - 4pt grid (xxs: 4pt → xxxl: 64pt)
+  - Semantic spacing (cards, lists, sections, buttons)
+  - Corner radius system (sm to full)
+  - View extensions per facilità d'uso
+- [x] Creare componenti SwiftUI base
+  - `DSButton` (5 styles: primary, secondary, tertiary, destructive, ghost)
+  - `DSTextField` (3 styles: default, filled, outlined)
+  - `DSTextEditor` (multi-line)
+  - `DSSearchField` (con clear button)
+  - `DSCard` (4 styles: default, elevated, outlined, flat)
+  - `DSListItem` (selectable items)
+  - `DSBadge` (status badges)
+  - `DSDivider`
+- [x] Icon system
+  - SF Symbols integrati nei componenti
+  - Supporto icon in DSButton
 
 **Stima:** 3-4 giorni
+**Completato:** 23 Dicembre 2024
 
 ---
 
