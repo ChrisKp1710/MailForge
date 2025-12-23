@@ -1,0 +1,57 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Xcode
+xcuserdata/
+*.xcworkspace
+!default.xcworkspace
+*.xcuserstate
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.xccheckout
+*.moved-aside
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Build artifacts
+build/
+Carthage/Build/
+
+# Swift generated files
+*.swiftdoc
+*.swiftmodule
+
+# Playground support
+*.playground
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Code coverage
+*.profdata
+*.profraw
+
+# IDE - AppCode
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Claude Code
+.claude/
