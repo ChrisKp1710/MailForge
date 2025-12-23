@@ -1,8 +1,8 @@
 # MailForge - Roadmap di Sviluppo
 
 **Versione:** 1.0
-**Ultima Modifica:** 23 Dicembre 2024
-**Status Progetto:** 🔴 Not Started
+**Ultima Modifica:** 23 Dicembre 2024 - 18:59
+**Status Progetto:** 🟡 In Progress
 
 ---
 
@@ -29,13 +29,13 @@
 
 | Fase | Obiettivo | Features | Status | Completamento |
 |------|-----------|----------|--------|---------------|
-| **Fase 0** | Setup & Fondamenta | Progetto Xcode, Design System, Architettura | 🔴 Not Started | 0% |
+| **Fase 0** | Setup & Fondamenta | Progetto Xcode, Design System, Architettura | 🟡 In Progress | 25% |
 | **Fase 1** | Email Core MVP | IMAP/SMTP, Lettura/Invio, UI Base | 🔴 Not Started | 0% |
 | **Fase 2** | Produttività | Calendario, Note, Task | 🔴 Not Started | 0% |
 | **Fase 3** | AI & Automazione | ML on-device, Smart features | 🔴 Not Started | 0% |
 | **Fase 4** | Polish & Launch | Testing, Beta, App Store | 🔴 Not Started | 0% |
 
-**Progress Totale: 0%**
+**Progress Totale: 5%**
 
 ---
 
@@ -43,44 +43,40 @@
 
 **Obiettivo:** Creare le fondamenta solide del progetto - architettura, design system, struttura base.
 
-**Status:** 🔴 Not Started
-**Completamento:** 0%
+**Status:** 🟡 In Progress
+**Completamento:** 25%
 
 ### Tasks
 
-#### 1. Setup Progetto Xcode
-- [ ] Creare nuovo progetto Xcode
+#### 1. Setup Progetto Xcode ✅ COMPLETATO
+- [x] Creare nuovo progetto Swift Package
   - App macOS
   - SwiftUI lifecycle
   - Target: macOS 14+
   - Swift 6
-- [ ] Configurare Git repository
-  - .gitignore per Xcode
-  - Branch structure (main, develop)
-  - Conventional commits setup
-- [ ] Setup folder structure
+- [x] Configurare Git repository
+  - .gitignore per Xcode/Swift
+  - Branch main creato
+  - Initial commit fatto
+- [x] Setup folder structure
   ```
   MailForge/
-  ├── App/
-  ├── Core/
-  │   ├── Email/
-  │   ├── Data/
-  │   ├── Models/
-  ├── Features/
-  │   ├── Inbox/
-  │   ├── Composer/
-  │   ├── Settings/
-  ├── UI/
-  │   ├── Components/
-  │   ├── DesignSystem/
-  └── Utils/
+  ├── Sources/MailForge/
+  │   ├── App/
+  │   ├── Core/
+  │   ├── Features/
+  │   ├── UI/
+  │   └── Utils/
+  ├── Package.swift
+  └── ...
   ```
-- [ ] Configurare Swift Package Manager
-  - SwiftNIO dependency
-  - SwiftFormat (dev)
-  - SwiftLint (dev)
+- [x] Configurare Swift Package Manager
+  - SwiftNIO dependency (v2.92.0)
+  - NIOSSL dependency (v2.36.0)
+  - Build verificato: ZERO errori, ZERO warning
 
 **Stima:** 1-2 giorni
+**Completato:** 23 Dicembre 2024
 
 ---
 
