@@ -1,8 +1,8 @@
 # MailForge - Roadmap di Sviluppo
 
 **Versione:** 1.0
-**Ultima Modifica:** 23 Dicembre 2024 - 19:35
-**Status Progetto:** 🟡 In Progress
+**Ultima Modifica:** 23 Dicembre 2024 - 19:45
+**Status Progetto:** 🟢 Fase 0 Completata
 
 ---
 
@@ -29,13 +29,13 @@
 
 | Fase | Obiettivo | Features | Status | Completamento |
 |------|-----------|----------|--------|---------------|
-| **Fase 0** | Setup & Fondamenta | Progetto Xcode, Design System, Architettura | 🟡 In Progress | 75% |
+| **Fase 0** | Setup & Fondamenta | Progetto Xcode, Design System, Architettura | ✅ Completato | 100% |
 | **Fase 1** | Email Core MVP | IMAP/SMTP, Lettura/Invio, UI Base | 🔴 Not Started | 0% |
 | **Fase 2** | Produttività | Calendario, Note, Task | 🔴 Not Started | 0% |
 | **Fase 3** | AI & Automazione | ML on-device, Smart features | 🔴 Not Started | 0% |
 | **Fase 4** | Polish & Launch | Testing, Beta, App Store | 🔴 Not Started | 0% |
 
-**Progress Totale: 15%**
+**Progress Totale: 20%**
 
 ---
 
@@ -43,8 +43,8 @@
 
 **Obiettivo:** Creare le fondamenta solide del progetto - architettura, design system, struttura base.
 
-**Status:** 🟡 In Progress
-**Completamento:** 75%
+**Status:** ✅ Completato
+**Completamento:** 100%
 
 ### Tasks
 
@@ -140,22 +140,27 @@
 
 ---
 
-#### 4. Core Utilities
-- [ ] Keychain wrapper
+#### 4. Core Utilities ✅ COMPLETATO
+- [x] Keychain wrapper
   - Save credentials
   - Load credentials
   - Delete credentials
-- [ ] Logging system
-  - Swift OSLog wrapper
-  - Log levels (debug, info, warning, error)
-- [ ] Configuration management
-  - User defaults wrapper
-  - Settings persistence
-- [ ] Error handling
-  - Custom error types
+  - Account extension per facile integrazione
+- [x] Logging system
+  - Swift OSLog wrapper con categorie (app, email, imap, smtp, database, ui, network, keychain, sync, pec)
+  - Log levels (debug, info, warning, error, fault)
+  - Convenience methods per categorie specifiche
+- [x] Configuration management
+  - UserDefaults wrapper con proprietà tipizzate
+  - 40+ settings organizzate per categoria
+  - Reset per categoria o completo
+- [x] Error handling
+  - 7 custom error types (Account, IMAP, SMTP, Database, PEC, Sync, File)
   - User-friendly error messages
+  - ErrorHandler centralizzato con logging automatico
 
 **Stima:** 2-3 giorni
+**Completato:** 23 Dicembre 2024
 
 ---
 
