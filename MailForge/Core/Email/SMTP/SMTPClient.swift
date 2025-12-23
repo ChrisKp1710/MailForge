@@ -209,33 +209,33 @@ final class SMTPClient {
         Logger.info("Successfully authenticated", category: logCategory)
     }
 
-    /// Send email
-    /// - Parameters:
-    ///   - from: Sender email address
-    ///   - to: Recipient email addresses
-    ///   - subject: Email subject
-    ///   - body: Email body (plain text)
-    func sendEmail(from: String, to: [String], subject: String, body: String) async throws {
-        Logger.info("Sending email to \(to.count) recipient(s)...", category: logCategory)
+    /// Send email using MIME message builder
+    /// - Parameter message: MIME message to send
+    func sendEmail(message: MIMEMessageBuilder) async throws {
+        // Build recipients list (to + cc + bcc)
+        let builder = message
+        let allRecipients = message.getAllRecipients()
+
+        Logger.info("Sending email to \(allRecipients.count) recipient(s)...", category: logCategory)
 
         guard state == .authenticated else {
             throw SMTPError.authenticationFailed
         }
 
         // MAIL FROM command
-        try await sendCommand("MAIL FROM:<\(from)>")
+        try await sendCommand("MAIL FROM:<\(message.getFrom())>")
 
         // RCPT TO commands (one per recipient)
-        for recipient in to {
+        for recipient in allRecipients {
             try await sendCommand("RCPT TO:<\(recipient)>")
         }
 
         // DATA command
         try await sendCommand("DATA")
 
-        // Send email headers and body
-        let emailContent = buildEmailContent(from: from, to: to, subject: subject, body: body)
-        try await sendCommand(emailContent)
+        // Send complete MIME message
+        let mimeContent = message.build()
+        try await sendRawData(mimeContent)
 
         // End with CRLF.CRLF
         try await sendCommand(".")
@@ -243,33 +243,35 @@ final class SMTPClient {
         Logger.info("Email sent successfully", category: logCategory)
     }
 
-    // MARK: - Email Building
+    /// Send email (simple convenience method)
+    /// - Parameters:
+    ///   - from: Sender email address
+    ///   - to: Recipient email addresses
+    ///   - subject: Email subject
+    ///   - body: Email body (plain text)
+    func sendEmail(from: String, to: [String], subject: String, body: String) async throws {
+        let message = MIMEMessageBuilder(from: from, to: to, subject: subject)
+            .textBody(body)
 
-    /// Build email content (headers + body)
-    private func buildEmailContent(from: String, to: [String], subject: String, body: String) -> String {
-        var content = ""
-
-        // Headers
-        content += "From: <\(from)>\r\n"
-        content += "To: \(to.map { "<\($0)>" }.joined(separator: ", "))\r\n"
-        content += "Subject: \(subject)\r\n"
-        content += "Date: \(formatDate(Date()))\r\n"
-        content += "MIME-Version: 1.0\r\n"
-        content += "Content-Type: text/plain; charset=utf-8\r\n"
-        content += "\r\n"
-
-        // Body
-        content += body
-
-        return content
+        try await sendEmail(message: message)
     }
 
-    /// Format date for email header (RFC 5322)
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss Z"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter.string(from: date)
+    // MARK: - Raw Data Sending
+
+    /// Send raw data without CRLF appending (for MIME content)
+    /// - Parameter data: Raw data string
+    private func sendRawData(_ data: String) async throws {
+        guard let channel = channel else {
+            throw SMTPError.connectionFailed(host: host, port: port)
+        }
+
+        Logger.debug("SMTP → [MIME content, \(data.count) bytes]", category: logCategory)
+
+        guard let buffer = channel.allocator.buffer(string: data) as ByteBuffer? else {
+            throw SMTPError.serverError(message: "Failed to create buffer")
+        }
+
+        try await channel.writeAndFlush(buffer)
     }
 
     // MARK: - Helper Methods
