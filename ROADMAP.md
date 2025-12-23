@@ -1,7 +1,7 @@
 # MailForge - Roadmap di Sviluppo
 
 **Versione:** 1.0
-**Ultima Modifica:** 23 Dicembre 2024 - 19:15
+**Ultima Modifica:** 23 Dicembre 2024 - 19:35
 **Status Progetto:** 🟡 In Progress
 
 ---
@@ -29,13 +29,13 @@
 
 | Fase | Obiettivo | Features | Status | Completamento |
 |------|-----------|----------|--------|---------------|
-| **Fase 0** | Setup & Fondamenta | Progetto Xcode, Design System, Architettura | 🟡 In Progress | 50% |
+| **Fase 0** | Setup & Fondamenta | Progetto Xcode, Design System, Architettura | 🟡 In Progress | 75% |
 | **Fase 1** | Email Core MVP | IMAP/SMTP, Lettura/Invio, UI Base | 🔴 Not Started | 0% |
 | **Fase 2** | Produttività | Calendario, Note, Task | 🔴 Not Started | 0% |
 | **Fase 3** | AI & Automazione | ML on-device, Smart features | 🔴 Not Started | 0% |
 | **Fase 4** | Polish & Launch | Testing, Beta, App Store | 🔴 Not Started | 0% |
 
-**Progress Totale: 10%**
+**Progress Totale: 15%**
 
 ---
 
@@ -44,7 +44,7 @@
 **Obiettivo:** Creare le fondamenta solide del progetto - architettura, design system, struttura base.
 
 **Status:** 🟡 In Progress
-**Completamento:** 50%
+**Completamento:** 75%
 
 ### Tasks
 
@@ -114,25 +114,29 @@
 
 ---
 
-#### 3. Architettura & Boilerplate
-- [ ] Setup MVVM architecture
+#### 3. Architettura & Boilerplate ✅ COMPLETATO
+- [x] SwiftData schema iniziale
+  - `Account` model (IMAP/PEC/Gmail/Outlook support)
+  - `Folder` model (Inbox, Sent, Drafts, Custom)
+  - `Message` model (full metadata, PEC support, flags)
+  - `Attachment` model (UTType, icons, file ops)
+  - Relationships configured (cascade delete)
+  - Computed properties & helper methods
+  - Factory methods per standard folders/accounts
+- [ ] Setup MVVM architecture (optional, fare dopo)
   - Base `ViewModel` protocol
   - Base `View` structure
-- [ ] Dependency Injection setup
+- [ ] Dependency Injection setup (optional, fare dopo)
   - Service container / Registry
   - Protocol per services
-- [ ] SwiftData schema iniziale
-  - `Account` model
-  - `Folder` model
-  - `Message` model
-  - `Attachment` model
-- [ ] File system structure
+- [ ] File system structure (da fare in Fase 1)
   - Application Support directory setup
   - Emails folder
   - Attachments folder
   - Cache management base
 
 **Stima:** 3-4 giorni
+**Completato:** 23 Dicembre 2024 (SwiftData models)
 
 ---
 
