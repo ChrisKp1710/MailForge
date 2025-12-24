@@ -1,4 +1,4 @@
-# MailForge - Roadmap di Sviluppo
+# ``MailForge - Roadmap di Sviluppo
 
 **Versione:** 1.0
 **Ultima Modifica:** 23 Dicembre 2024 - 23:50
@@ -9,6 +9,7 @@
 ## 📊 Overview Progetto
 
 ### Timeline Stimata
+
 - **Fase 0**: Setup & Fondamenta → 2-3 settimane
 - **Fase 1**: Email Core MVP → 6-8 settimane
 - **Fase 2**: Produttività Avanzata → 4-6 settimane
@@ -18,6 +19,7 @@
 **Totale stimato: 4-6 mesi per versione 1.0 completa**
 
 ### Approach
+
 - ✅ **Qualità > Velocità**: Codice fatto bene da subito
 - ✅ **100% Swift Nativo**: Zero compromessi su performance
 - ✅ **Privacy First**: On-device, zero telemetria
@@ -27,13 +29,14 @@
 
 ## 🎯 Milestone Overview
 
-| Fase | Obiettivo | Features | Status | Completamento |
-|------|-----------|----------|--------|---------------|
-| **Fase 0** | Setup & Fondamenta | Progetto Xcode, Design System, Architettura | ✅ Completato | 100% |
-| **Fase 1** | Email Core MVP | IMAP/SMTP, Lettura/Invio, UI Base | 🟡 In Progress | 20% |
-| **Fase 2** | Produttività | Calendario, Note, Task | 🔴 Not Started | 0% |
-| **Fase 3** | AI & Automazione | ML on-device, Smart features | 🔴 Not Started | 0% |
-| **Fase 4** | Polish & Launch | Testing, Beta, App Store | 🔴 Not Started | 0% |
+
+| Fase       | Obiettivo          | Features                                    | Status         | Completamento |
+| ---------- | ------------------ | ------------------------------------------- | -------------- | ------------- |
+| **Fase 0** | Setup & Fondamenta | Progetto Xcode, Design System, Architettura | ✅ Completato  | 100%          |
+| **Fase 1** | Email Core MVP     | IMAP/SMTP, Lettura/Invio, UI Base           | 🟡 In Progress | 20%           |
+| **Fase 2** | Produttività      | Calendario, Note, Task                      | 🔴 Not Started | 0%            |
+| **Fase 3** | AI & Automazione   | ML on-device, Smart features                | 🔴 Not Started | 0%            |
+| **Fase 4** | Polish & Launch    | Testing, Beta, App Store                    | 🔴 Not Started | 0%            |
 
 **Progress Totale: 24%**
 
@@ -49,16 +52,17 @@
 ### Tasks
 
 #### 1. Setup Progetto Xcode ✅ COMPLETATO
-- [x] Creare nuovo progetto Swift Package
+
+- [X]  Creare nuovo progetto Swift Package
   - App macOS
   - SwiftUI lifecycle
   - Target: macOS 14+
   - Swift 6
-- [x] Configurare Git repository
+- [X]  Configurare Git repository
   - .gitignore per Xcode/Swift
   - Branch main creato
   - Initial commit fatto
-- [x] Setup folder structure
+- [X]  Setup folder structure
   ```
   MailForge/
   ├── Sources/MailForge/
@@ -70,7 +74,7 @@
   ├── Package.swift
   └── ...
   ```
-- [x] Configurare Swift Package Manager
+- [X]  Configurare Swift Package Manager
   - SwiftNIO dependency (v2.92.0)
   - NIOSSL dependency (v2.36.0)
   - Build verificato: ZERO errori, ZERO warning
@@ -81,22 +85,23 @@
 ---
 
 #### 2. Design System Foundation ✅ COMPLETATO
-- [x] Definire palette colori
+
+- [X]  Definire palette colori
   - Light mode colors (semantic, brand, background, text, border)
   - Dark mode colors (adaptive con AppKit)
   - Semantic colors (success, warning, error, info)
   - Email-specific colors (unread, starred, read)
-- [x] Typography system
+- [X]  Typography system
   - Font sizes (Display, Headline, Body, Label, Caption)
   - Font weights (SF Pro system font)
   - Line heights e letter spacing
   - Email-specific text styles
-- [x] Spacing system
+- [X]  Spacing system
   - 4pt grid (xxs: 4pt → xxxl: 64pt)
   - Semantic spacing (cards, lists, sections, buttons)
   - Corner radius system (sm to full)
   - View extensions per facilità d'uso
-- [x] Creare componenti SwiftUI base
+- [X]  Creare componenti SwiftUI base
   - `DSButton` (5 styles: primary, secondary, tertiary, destructive, ghost)
   - `DSTextField` (3 styles: default, filled, outlined)
   - `DSTextEditor` (multi-line)
@@ -105,7 +110,7 @@
   - `DSListItem` (selectable items)
   - `DSBadge` (status badges)
   - `DSDivider`
-- [x] Icon system
+- [X]  Icon system
   - SF Symbols integrati nei componenti
   - Supporto icon in DSButton
 
@@ -115,7 +120,8 @@
 ---
 
 #### 3. Architettura & Boilerplate ✅ COMPLETATO
-- [x] SwiftData schema iniziale
+
+- [X]  SwiftData schema iniziale
   - `Account` model (IMAP/PEC/Gmail/Outlook support)
   - `Folder` model (Inbox, Sent, Drafts, Custom)
   - `Message` model (full metadata, PEC support, flags)
@@ -123,13 +129,13 @@
   - Relationships configured (cascade delete)
   - Computed properties & helper methods
   - Factory methods per standard folders/accounts
-- [ ] Setup MVVM architecture (optional, fare dopo)
+- [ ]  Setup MVVM architecture (optional, fare dopo)
   - Base `ViewModel` protocol
   - Base `View` structure
-- [ ] Dependency Injection setup (optional, fare dopo)
+- [ ]  Dependency Injection setup (optional, fare dopo)
   - Service container / Registry
   - Protocol per services
-- [ ] File system structure (da fare in Fase 1)
+- [ ]  File system structure (da fare in Fase 1)
   - Application Support directory setup
   - Emails folder
   - Attachments folder
@@ -141,20 +147,21 @@
 ---
 
 #### 4. Core Utilities ✅ COMPLETATO
-- [x] Keychain wrapper
+
+- [X]  Keychain wrapper
   - Save credentials
   - Load credentials
   - Delete credentials
   - Account extension per facile integrazione
-- [x] Logging system
+- [X]  Logging system
   - Swift OSLog wrapper con categorie (app, email, imap, smtp, database, ui, network, keychain, sync, pec)
   - Log levels (debug, info, warning, error, fault)
   - Convenience methods per categorie specifiche
-- [x] Configuration management
+- [X]  Configuration management
   - UserDefaults wrapper con proprietà tipizzate
   - 40+ settings organizzate per categoria
   - Reset per categoria o completo
-- [x] Error handling
+- [X]  Error handling
   - 7 custom error types (Account, IMAP, SMTP, Database, PEC, Sync, File)
   - User-friendly error messages
   - ErrorHandler centralizzato con logging automatico
@@ -165,6 +172,7 @@
 ---
 
 ### Deliverable Fase 0
+
 ✅ Progetto Xcode configurato e funzionante
 ✅ Design system base implementato
 ✅ Architettura MVVM + SwiftData pronta
@@ -178,59 +186,60 @@
 **Obiettivo:** Client email funzionante - lettura, invio, gestione base. Focus su PEC + IMAP generico.
 
 **Status:** 🟡 In Progress
-**Completamento:** 60%
+**Completamento:** 20%
 **Iniziato:** 23 Dicembre 2024
-**Ultimo Update:** Task 1, 2, 3 & 4 completati! (IMAP + SMTP + Parsing + Accounts)
+**Ultimo Update:** Task 1 (IMAP Client) completato al 100%
 
 ### Tasks
 
 #### 1. SwiftNIO IMAP Client (Custom Implementation) ✅ COMPLETATO
-- [x] Setup SwiftNIO base
+
+- [X]  Setup SwiftNIO base
   - Channel pipeline configuration con ByteToMessageHandler
   - TLS/SSL handler con NIOSSL
   - IMAPLineDecoder/Encoder per protocollo line-based
   - IMAPResponseDecoder per parsing risposte
   - IMAPResponseHandler per gestione asincrona
-- [x] IMAP protocol implementation - Base
-  - [x] Connection & Login
+- [X]  IMAP protocol implementation - Base
+  - [X]  Connection & Login
     - CAPABILITY command implementato
     - LOGIN command con credenziali quotate
     - TLS/SSL diretto (porta 993)
     - Gestione greeting server
     - Tag generation unico per comandi
-  - [x] Folder operations
+  - [X]  Folder operations
     - LIST command (fetch folders con pattern matching)
     - SELECT command (select folder read/write)
     - EXAMINE command (read-only select)
     - CLOSE command (chiudi folder selezionata)
-  - [ ] Message fetching
+  - [ ]  Message fetching
     - FETCH command (headers, body, flags)
     - UID FETCH (persistent IDs)
     - BODY.PEEK (non-marking as read)
-  - [ ] Search
+  - [ ]  Search
     - SEARCH command
     - Search criteria (FROM, TO, SUBJECT, DATE, etc.)
-  - [ ] Flags & State
+  - [ ]  Flags & State
     - STORE command (set flags)
     - FLAGS (\Seen, \Flagged, \Deleted, etc.)
-  - [ ] IDLE support (push notifications)
-- [x] IMAP State Machine
+  - [ ]  IDLE support (push notifications)
+- [X]  IMAP State Machine
   - Not Authenticated state
   - Authenticated state
   - Selected state (con folder name)
   - Logout state
-- [x] Tipi dati IMAP (IMAPTypes.swift)
+- [X]  Tipi dati IMAP (IMAPTypes.swift)
   - IMAPFolder con attributes e special folder detection
   - IMAPFolderInfo con exists/recent/flags
   - IMAPMessageData e IMAPEnvelope
   - IMAPBodyStructure (multipart support)
   - IMAPSearchCriteria (builder per query search)
   - IMAPMessageFlag enum
-- [ ] Error handling robusto
+- [X]  Error handling robusto
   - Network errors (già in IMAPError)
   - Authentication failures (già gestiti)
   - Protocol errors parsing
-- [ ] Unit tests per IMAP client
+- [ ]  Unit tests per IMAP client
   - Mock server per testing
   - Test coverage > 80%
 
@@ -240,128 +249,102 @@
 
 ---
 
-#### 2. SMTP Client (Invio Email) ✅ COMPLETATO
-- [x] SwiftNIO SMTP implementation
-  - [x] EHLO command con parsing capabilities
-  - [x] AUTH LOGIN (base64 authentication)
-  - [x] MAIL FROM / RCPT TO / DATA
-  - [x] TLS support (porta 465 diretto, porta 587 ready for STARTTLS)
-  - [x] SMTPResponseHandler per gestione asincrona risposte
-  - [x] SMTPResponseCollector per await responses
-  - [x] Verifica codici risposta (220, 250, 334, 235, 354, 221)
-  - [x] Error handling robusto per ogni comando
-- [x] Email composition (MIME Message Builder)
-  - [x] MIME message builder completo
-  - [x] Headers (From, To, Cc, Bcc, Subject, Date, Message-ID)
-  - [x] Plain text body
-  - [x] HTML body
-  - [x] Multipart/alternative (text + HTML)
-  - [x] RFC 5322 compliant headers
-  - [x] RFC 2047 encoding per non-ASCII subject
-- [x] Attachments
-  - [x] MIME multipart/mixed
-  - [x] Base64 encoding con line wrapping (76 chars)
-  - [x] Content-Type detection automatica da estensione
-  - [x] Inline attachments con Content-ID
-  - [x] File attachment da path o URL
-  - [x] 40+ tipi MIME supportati
-- [ ] Send queue
-  - Retry logic per fallimenti (da fare in futuro)
-  - Offline queue (da fare in futuro)
+#### 2. SMTP Client (Invio Email)
+
+- [ ]  SwiftNIO SMTP implementation
+  - EHLO/HELO command
+  - AUTH LOGIN (authentication)
+  - MAIL FROM / RCPT TO / DATA
+  - TLS support (STARTTLS)
+- [ ]  Email composition
+  - MIME message builder
+  - Headers (From, To, Cc, Bcc, Subject, Date)
+  - Plain text body
+  - HTML body
+  - Multipart/alternative
+- [ ]  Attachments
+  - MIME multipart/mixed
+  - Base64 encoding
+  - Content-Type detection
+- [ ]  Send queue
+  - Retry logic per fallimenti
+  - Offline queue (invia quando torna rete)
 
 **Stima:** 1-2 settimane
-**Completato:** 24 Dicembre 2024
-**Progresso:** ✅ 95% completato (send queue opzionale per dopo)
 
 ---
 
-#### 3. Email Parsing & Storage ✅ COMPLETATO
-- [x] Email parser
-  - [x] Headers parsing (RFC 5322)
-  - [x] Body extraction (text/html)
-  - [x] Attachment extraction
-  - [x] MIME decoding (base64, quoted-printable)
-  - [x] RFC 2047 header decoding (non-ASCII)
-  - [x] Multipart/alternative, multipart/mixed
-- [x] SwiftData integration
-  - [x] Save messages to SwiftData
-  - [x] Save attachments to file system
-  - [x] Fetch messages per folder
-  - [x] Search full-text (subject, from, body)
-  - [x] Mark as read/unread, flagged
-  - [x] Delete with cascade (attachments)
-  - [x] Storage metrics (calculate size)
-- [x] PEC handling speciale
-  - [x] Riconoscere email PEC (headers X-Ricevuta, X-Tipo-Ricevuta)
-  - [x] Parse allegati PEC (daticert.xml, postacert.eml)
-  - [x] Extract PEC metadata (mittente, destinatario, gestore)
-  - [x] Detect PEC type (accettazione, consegna, errore, etc.)
-  - [ ] UI speciale per visualizzare certificazioni (Task 6)
+#### 3. Email Parsing & Storage
+
+- [ ]  Email parser
+  - Headers parsing (RFC 5322)
+  - Body extraction (text/html)
+  - Attachment extraction
+  - MIME decoding
+- [ ]  SwiftData integration
+  - Save messages to SwiftData
+  - Save attachments to file system
+  - Indexing per ricerca full-text
+- [ ]  PEC handling speciale
+  - Riconoscere email PEC (headers specifici)
+  - Parse allegati PEC (daticert.xml, postacert.eml)
+  - UI speciale per visualizzare certificazioni
 
 **Stima:** 1-2 settimane
-**Completato:** 24 Dicembre 2024
-**Progresso:** ✅ 100% completato
 
 ---
 
-#### 4. Account Management ✅ COMPLETATO
-- [x] Account setup flow
-  - [x] UI per aggiungere account (AccountSetupView)
-  - [x] Form: email, password con validazione
-  - [x] Preset per 7 provider (Gmail, IONOS PEC, Outlook, iCloud, Yahoo, ProtonMail, Generic)
-  - [x] Auto-detect provider da email domain
-  - [x] Test connessione IMAP + SMTP prima di salvare
-  - [x] Save credenziali in Keychain
-  - [x] Notes/help per ogni provider (App Password info, etc.)
-- [x] Multi-account support
-  - [x] AccountManager per gestione multi-account
-  - [x] Switch tra account
-  - [x] Unified inbox (tutti gli unread di tutti gli account)
-  - [x] Per-account inbox
-  - [x] Total unread count
-- [x] Account settings
-  - [x] AccountSettingsView per edit account
-  - [x] Edit display name
-  - [x] Change password
-  - [x] View server configuration (read-only)
-  - [x] Remove account con conferma
-  - [x] Cascade delete (email + attachments)
-  - [ ] Sync settings (frequency) - da fare in Task 10
+#### 4. Account Management
+
+- [ ]  Account setup flow
+  - UI per aggiungere account
+  - Form: email, password, IMAP/SMTP hosts, ports
+  - Preset per PEC IONOS
+  - Test connessione
+  - Save credenziali in Keychain
+- [ ]  Multi-account support
+  - Switch tra account
+  - Unified inbox
+  - Per-account inbox
+- [ ]  Account settings
+  - Edit account
+  - Remove account
+  - Sync settings (frequency, etc.)
 
 **Stima:** 1 settimana
-**Completato:** 24 Dicembre 2024
-**Progresso:** ✅ 100% completato
 
 ---
 
 #### 5. UI - Inbox & Message List
-- [ ] Sidebar
+
+- [ ]  Sidebar
   - Account list
   - Folders tree
   - Smart folders (Inbox, Sent, Starred, etc.)
-- [ ] Message List View
+- [ ]  Message List View
   - LazyVStack per performance
   - Message row (from, subject, date, preview)
   - Unread indicator
   - Star icon
   - Selection state
-- [ ] Pull-to-refresh
-- [ ] Loading states
-- [ ] Empty states
+- [ ]  Pull-to-refresh
+- [ ]  Loading states
+- [ ]  Empty states
 
 **Stima:** 1 settimana
 
 ---
 
 #### 6. UI - Message Detail View
-- [ ] Email preview
+
+- [ ]  Email preview
   - Headers (From, To, Cc, Date)
   - Subject
   - Body rendering
     - Plain text
     - HTML (sanitized con WebKit)
   - Attachments list
-- [ ] Actions
+- [ ]  Actions
   - Reply
   - Reply All
   - Forward
@@ -369,7 +352,7 @@
   - Delete
   - Star/Unstar
   - Mark as read/unread
-- [ ] Keyboard navigation
+- [ ]  Keyboard navigation
   - J/K per navigare email
   - E per archiviare
   - R per reply
@@ -380,21 +363,22 @@
 ---
 
 #### 7. UI - Composer (Scrivere Email)
-- [ ] Composer window/sheet
+
+- [ ]  Composer window/sheet
   - To/Cc/Bcc fields
   - Subject field
   - Body editor (TextEditor)
   - Rich text formatting base (grassetto, corsivo, liste)
-- [ ] Attachments
+- [ ]  Attachments
   - Drag & drop files
   - File picker
   - Preview allegati
   - Remove attachment
-- [ ] Send functionality
+- [ ]  Send functionality
   - Validation (recipient, subject)
   - Sending state
   - Error handling
-- [ ] Draft auto-save
+- [ ]  Draft auto-save
   - Save draft ogni 30s
   - Restore draft al reopen
 
@@ -403,15 +387,16 @@
 ---
 
 #### 8. Search & Filters
-- [ ] Search bar
+
+- [ ]  Search bar
   - Full-text search (SwiftData query)
   - Search in subject, from, to, body
-- [ ] Filters
+- [ ]  Filters
   - Unread only
   - Starred only
   - Has attachments
   - Date range
-- [ ] Search results view
+- [ ]  Search results view
   - Highlight matching terms
 
 **Stima:** 3-4 giorni
@@ -419,13 +404,14 @@
 ---
 
 #### 9. Settings & Preferences
-- [ ] Settings window
+
+- [ ]  Settings window
   - General settings
   - Accounts management
   - Appearance (Light/Dark mode toggle)
   - Notifications settings
   - Keyboard shortcuts reference
-- [ ] Preferences persistence
+- [ ]  Preferences persistence
   - UserDefaults wrapper
 
 **Stima:** 2-3 giorni
@@ -433,12 +419,13 @@
 ---
 
 #### 10. Background Sync
-- [ ] Periodic sync
+
+- [ ]  Periodic sync
   - Fetch new messages every N minutes
   - Background fetch con low priority
-- [ ] IMAP IDLE (push notifications)
+- [ ]  IMAP IDLE (push notifications)
   - Opzionale, solo se server supporta
-- [ ] Notification Center integration
+- [ ]  Notification Center integration
   - Local notifications per nuove email importanti
 
 **Stima:** 3-4 giorni
@@ -446,20 +433,22 @@
 ---
 
 ### Testing & Bug Fixing
-- [ ] Test con account PEC IONOS reale
-- [ ] Test con Gmail (IMAP)
-- [ ] Test con Outlook/Exchange
-- [ ] Performance testing
+
+- [ ]  Test con account PEC IONOS reale
+- [ ]  Test con Gmail (IMAP)
+- [ ]  Test con Outlook/Exchange
+- [ ]  Performance testing
   - Load 1000+ email
   - Search performance
   - Memory usage
-- [ ] Bug fixing & polish
+- [ ]  Bug fixing & polish
 
 **Stima:** 1 settimana
 
 ---
 
 ### Deliverable Fase 1
+
 ✅ Client email funzionante
 ✅ IMAP/SMTP client custom in Swift
 ✅ Multi-account support (PEC + IMAP generico)
@@ -480,21 +469,22 @@
 ### Tasks
 
 #### 1. Calendario Integrato
-- [ ] CalDAV client (per Google Calendar, iCloud)
+
+- [ ]  CalDAV client (per Google Calendar, iCloud)
   - Fetch eventi
   - Create evento
   - Update evento
   - Delete evento
-- [ ] Calendario UI
+- [ ]  Calendario UI
   - Vista giornaliera
   - Vista settimanale
   - Vista mensile
   - Event detail view
-- [ ] Integrazione con email
+- [ ]  Integrazione con email
   - Parse date/orari da email
   - Suggerimento "Crea evento da questa email"
   - Link evento ↔ email
-- [ ] Sincronizzazione
+- [ ]  Sincronizzazione
   - Periodic sync con calendari remoti
   - Conflict resolution
 
@@ -503,18 +493,19 @@
 ---
 
 #### 2. Note (Markdown Editor)
-- [ ] Note model (SwiftData)
+
+- [ ]  Note model (SwiftData)
   - Title, body, tags, date
   - Link a email/eventi
-- [ ] Markdown editor
+- [ ]  Markdown editor
   - Syntax highlighting
   - Preview mode
   - Shortcuts (CMD+B per bold, etc.)
-- [ ] Note organization
+- [ ]  Note organization
   - Folders
   - Tags
   - Search full-text
-- [ ] Link bidirezionali
+- [ ]  Link bidirezionali
   - Note → Email
   - Email → Note
 
@@ -523,16 +514,17 @@
 ---
 
 #### 3. Task Management
-- [ ] Task model (SwiftData)
+
+- [ ]  Task model (SwiftData)
   - Title, description, priority, due date, status
   - Tags, project
-- [ ] Task UI
+- [ ]  Task UI
   - Lista task
   - Vista Kanban (opzionale)
   - Filter by status/priority/tag
-- [ ] Email → Task conversion
+- [ ]  Email → Task conversion
   - Un click per creare task da email
-- [ ] Integrazione calendario
+- [ ]  Integrazione calendario
   - Task con scadenza appare in calendario
 
 **Stima:** 1-2 settimane
@@ -540,14 +532,15 @@
 ---
 
 #### 4. Smart Folders & Organization
-- [ ] Smart folders automatici
+
+- [ ]  Smart folders automatici
   - Urgenti (heuristic: oggi + unread)
   - Da seguire (non risposto in 3 giorni)
   - Newsletter (pattern recognition)
-- [ ] Tags & labels custom
+- [ ]  Tags & labels custom
   - Assegna tag a email
   - Filter by tag
-- [ ] Snooze email
+- [ ]  Snooze email
   - Nascondi email fino a data/ora specifica
   - Riappare automaticamente
 
@@ -556,15 +549,17 @@
 ---
 
 ### Testing & Polish
-- [ ] Integration testing (calendario + email + note + task)
-- [ ] Performance testing
-- [ ] Bug fixing
+
+- [ ]  Integration testing (calendario + email + note + task)
+- [ ]  Performance testing
+- [ ]  Bug fixing
 
 **Stima:** 3-5 giorni
 
 ---
 
 ### Deliverable Fase 2
+
 ✅ Calendario integrato con sync CalDAV
 ✅ Note editor Markdown
 ✅ Task management funzionante
@@ -583,13 +578,14 @@
 ### Tasks
 
 #### 1. Riassunti Email (Summarization)
-- [ ] CoreML model per summarization
+
+- [ ]  CoreML model per summarization
   - Training o fine-tuning di modello
   - Ottimizzazione per Neural Engine
-- [ ] UI per riassunto
+- [ ]  UI per riassunto
   - "TL;DR" button
   - Preview riassunto sopra email
-- [ ] Performance optimization
+- [ ]  Performance optimization
   - Caching riassunti generati
   - Background processing
 
@@ -598,13 +594,14 @@
 ---
 
 #### 2. Suggerimenti Risposta (Reply Suggestions)
-- [ ] NaturalLanguage framework
+
+- [ ]  NaturalLanguage framework
   - Sentiment analysis
   - Key phrase extraction
-- [ ] Smart reply generation
+- [ ]  Smart reply generation
   - 3 suggerimenti di risposta breve
   - Contextual (basato su email ricevuta)
-- [ ] UI integration
+- [ ]  UI integration
   - Quick reply buttons in composer
 
 **Stima:** 1-2 settimane
@@ -612,12 +609,13 @@
 ---
 
 #### 3. Categorizzazione Automatica
-- [ ] Email classifier (CoreML)
+
+- [ ]  Email classifier (CoreML)
   - Categorie: Fattura, Ordine, Newsletter, Personale, Lavoro, etc.
   - Training su dataset etichettato
-- [ ] Auto-tagging
+- [ ]  Auto-tagging
   - Assegna tag automaticamente
-- [ ] Smart folder population
+- [ ]  Smart folder population
   - Popola smart folders basati su categoria
 
 **Stima:** 1-2 settimane
@@ -625,12 +623,13 @@
 ---
 
 #### 4. Correzione & Tone Adjustment
-- [ ] Grammar correction (NaturalLanguage)
+
+- [ ]  Grammar correction (NaturalLanguage)
   - Suggerimenti grammaticali in composer
-- [ ] Tone detection & adjustment
+- [ ]  Tone detection & adjustment
   - Rileva tone (formale, casual, amichevole)
   - Suggerisci riscrittura per tone diverso
-- [ ] Translation (opzionale)
+- [ ]  Translation (opzionale)
   - Traduci email in diverse lingue
   - CoreML translation model
 
@@ -639,12 +638,13 @@
 ---
 
 #### 5. Automazioni Intelligenti
-- [ ] Rule engine
+
+- [ ]  Rule engine
   - "Se email da X, allora tag Y"
   - "Se newsletter, archivia dopo 3 giorni se non letta"
-- [ ] Follow-up reminders
+- [ ]  Follow-up reminders
   - "Non hai ricevuto risposta da 3 giorni, vuoi follow-up?"
-- [ ] Smart notifications
+- [ ]  Smart notifications
   - "Questa email sembra importante" (priority inbox)
 
 **Stima:** 1 settimana
@@ -652,19 +652,21 @@
 ---
 
 ### Testing & Optimization
-- [ ] AI performance testing
+
+- [ ]  AI performance testing
   - Latency < 200ms per inference
   - Battery impact acceptable
-- [ ] Model optimization
+- [ ]  Model optimization
   - Quantization per ridurre size
   - Neural Engine profiling
-- [ ] Bug fixing
+- [ ]  Bug fixing
 
 **Stima:** 3-5 giorni
 
 ---
 
 ### Deliverable Fase 3
+
 ✅ AI riassunti email on-device
 ✅ Suggerimenti risposta intelligenti
 ✅ Categorizzazione automatica
@@ -684,16 +686,17 @@
 ### Tasks
 
 #### 1. UI/UX Polish
-- [ ] Design refinement
+
+- [ ]  Design refinement
   - Animazioni fluide
   - Transizioni coerenti
   - Micro-interactions
-- [ ] Accessibility
+- [ ]  Accessibility
   - VoiceOver support
   - Keyboard navigation completo
   - High contrast mode
   - Dynamic type support
-- [ ] Dark/Light mode polish
+- [ ]  Dark/Light mode polish
   - Tutti gli edge cases coperti
   - Smooth transition
 
@@ -702,13 +705,14 @@
 ---
 
 #### 2. Performance Optimization
-- [ ] Profiling con Instruments
+
+- [ ]  Profiling con Instruments
   - Memory leaks
   - CPU hotspots
   - Disk I/O optimization
-- [ ] Startup time optimization
+- [ ]  Startup time optimization
   - Target: < 1 secondo cold start
-- [ ] Battery optimization
+- [ ]  Battery optimization
   - Background activity minimizzata
 
 **Stima:** 3-4 giorni
@@ -716,10 +720,11 @@
 ---
 
 #### 3. Testing Completo
-- [ ] Unit tests coverage > 80%
-- [ ] Integration tests per flow critici
-- [ ] UI tests
-- [ ] Manual QA
+
+- [ ]  Unit tests coverage > 80%
+- [ ]  Integration tests per flow critici
+- [ ]  UI tests
+- [ ]  Manual QA
   - Test su diversi Mac (M1, M2, M3)
   - Test con account reali (PEC, Gmail, Outlook)
   - Test edge cases
@@ -729,31 +734,33 @@
 ---
 
 #### 4. Beta Testing
-- [ ] TestFlight setup
-- [ ] Recruit beta testers (20-50 persone)
-- [ ] Collect feedback
-- [ ] Iterate su feedback critico
-- [ ] Bug fixing
+
+- [ ]  TestFlight setup
+- [ ]  Recruit beta testers (20-50 persone)
+- [ ]  Collect feedback
+- [ ]  Iterate su feedback critico
+- [ ]  Bug fixing
 
 **Stima:** 2 settimane (parallelo ad altre tasks)
 
 ---
 
 #### 5. App Store Preparation
-- [ ] App Store assets
+
+- [ ]  App Store assets
   - Icon (1024x1024)
   - Screenshots (varie risoluzioni)
   - Preview video (opzionale)
-- [ ] App Store copy
+- [ ]  App Store copy
   - Descrizione app
   - Keywords
   - Privacy policy
   - Support URL
-- [ ] Notarization
+- [ ]  Notarization
   - Apple notarization process
   - Hardened runtime
   - App Sandbox configuration
-- [ ] Submission
+- [ ]  Submission
   - Upload build
   - App Review submission
 
@@ -762,19 +769,21 @@
 ---
 
 #### 6. Marketing & Launch
-- [ ] Landing page
+
+- [ ]  Landing page
   - Website con info app
   - Download link
   - Pricing info
-- [ ] Product Hunt launch
-- [ ] Social media announcement
-- [ ] Press kit (opzionale)
+- [ ]  Product Hunt launch
+- [ ]  Social media announcement
+- [ ]  Press kit (opzionale)
 
 **Stima:** 3-5 giorni
 
 ---
 
 ### Deliverable Fase 4
+
 ✅ App polished e performante
 ✅ Beta testing completato
 ✅ App Store submission approved
@@ -785,40 +794,45 @@
 ## 📊 Post-Launch (Continuo)
 
 ### Maintenance & Iteration
-- [ ] Monitor crash reports
-- [ ] Fix bug critici ASAP
-- [ ] Collect user feedback
-- [ ] Plan next features (v1.1, v1.2, etc.)
+
+- [ ]  Monitor crash reports
+- [ ]  Fix bug critici ASAP
+- [ ]  Collect user feedback
+- [ ]  Plan next features (v1.1, v1.2, etc.)
 
 ### Feature Roadmap (Post v1.0)
-- [ ] iOS companion app (iPhone/iPad)
-- [ ] Plugin system per estensioni third-party
-- [ ] Integrazioni (Notion, Todoist, Slack, etc.)
-- [ ] Advanced email templates
-- [ ] Email scheduling (send later)
-- [ ] Read receipts & tracking
-- [ ] Team features (shared inboxes, etc.)
+
+- [ ]  iOS companion app (iPhone/iPad)
+- [ ]  Plugin system per estensioni third-party
+- [ ]  Integrazioni (Notion, Todoist, Slack, etc.)
+- [ ]  Advanced email templates
+- [ ]  Email scheduling (send later)
+- [ ]  Read receipts & tracking
+- [ ]  Team features (shared inboxes, etc.)
 
 ---
 
 ## 🎯 Success Metrics
 
 ### Technical KPIs
-- [ ] Startup time < 1s (P95)
-- [ ] Crash-free rate > 99.5%
-- [ ] App size < 50MB
-- [ ] Memory usage < 200MB (average)
+
+- [ ]  Startup time < 1s (P95)
+- [ ]  Crash-free rate > 99.5%
+- [ ]  App size < 50MB
+- [ ]  Memory usage < 200MB (average)
 
 ### User KPIs
-- [ ] 10,000 downloads (6 mesi)
-- [ ] 500 paying users (1 anno)
-- [ ] 4.5+ stars App Store rating
-- [ ] 30-day retention > 40%
+
+- [ ]  10,000 downloads (6 mesi)
+- [ ]  500 paying users (1 anno)
+- [ ]  4.5+ stars App Store rating
+- [ ]  30-day retention > 40%
 
 ### Business KPIs
-- [ ] MRR €2,500/mese (12 mesi)
-- [ ] Conversion rate free→Pro > 5%
-- [ ] Churn rate < 5%/mese
+
+- [ ]  MRR €2,500/mese (12 mesi)
+- [ ]  Conversion rate free→Pro > 5%
+- [ ]  Churn rate < 5%/mese
 
 ---
 
@@ -827,6 +841,7 @@
 ### Log Decisioni Architetturali
 
 **23 Dicembre 2024:**
+
 - ✅ Deciso: 100% Swift nativo (no Objective-C)
 - ✅ Deciso: SwiftData per storage (vs CoreData)
 - ✅ Deciso: SwiftNIO per IMAP/SMTP custom (vs MailCore2)
@@ -835,28 +850,29 @@
 
 ### Rischi & Mitigazioni
 
-| Rischio | Probabilità | Impatto | Mitigazione |
-|---------|-------------|---------|-------------|
-| IMAP custom troppo complesso | Media | Alto | Start con subset IMAP minimo, aggiungi features incrementalmente |
-| Performance AI non accettabile | Bassa | Medio | Profile early, ottimizza modelli CoreML, usa Neural Engine |
-| Timeline troppo ottimistica | Media | Medio | Buffer time in ogni fase, MVP minimo ben definito |
-| Competizione (Superhuman, Spark) | Alta | Medio | Differenziazione: PEC, privacy, prezzo, native macOS |
+
+| Rischio                          | Probabilità | Impatto | Mitigazione                                                      |
+| -------------------------------- | ------------ | ------- | ---------------------------------------------------------------- |
+| IMAP custom troppo complesso     | Media        | Alto    | Start con subset IMAP minimo, aggiungi features incrementalmente |
+| Performance AI non accettabile   | Bassa        | Medio   | Profile early, ottimizza modelli CoreML, usa Neural Engine       |
+| Timeline troppo ottimistica      | Media        | Medio   | Buffer time in ogni fase, MVP minimo ben definito                |
+| Competizione (Superhuman, Spark) | Alta         | Medio   | Differenziazione: PEC, privacy, prezzo, native macOS             |
 
 ---
 
 ## ✅ Checklist Pre-Launch
 
-- [ ] Tutte le features MVP funzionanti
-- [ ] Zero crash critici
-- [ ] Performance targets raggiunti
-- [ ] UI/UX polished
-- [ ] Accessibility compliant
-- [ ] Privacy policy scritta
-- [ ] App Store assets pronti
-- [ ] Beta testing completato con feedback positivo
-- [ ] Notarization approved
-- [ ] Landing page live
-- [ ] Support email configurato
+- [ ]  Tutte le features MVP funzionanti
+- [ ]  Zero crash critici
+- [ ]  Performance targets raggiunti
+- [ ]  UI/UX polished
+- [ ]  Accessibility compliant
+- [ ]  Privacy policy scritta
+- [ ]  App Store assets pronti
+- [ ]  Beta testing completato con feedback positivo
+- [ ]  Notarization approved
+- [ ]  Landing page live
+- [ ]  Support email configurato
 
 ---
 
@@ -867,6 +883,7 @@
 ---
 
 **Legend:**
+
 - 🔴 Not Started
 - 🟡 In Progress
 - 🟢 Completed
