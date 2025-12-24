@@ -178,9 +178,9 @@
 **Obiettivo:** Client email funzionante - lettura, invio, gestione base. Focus su PEC + IMAP generico.
 
 **Status:** 🟡 In Progress
-**Completamento:** 30%
+**Completamento:** 45%
 **Iniziato:** 23 Dicembre 2024
-**Ultimo Update:** Task 1 & 2 (IMAP + SMTP Client) completati al 100%
+**Ultimo Update:** Task 1, 2 & 3 (IMAP + SMTP + Email Parsing) completati!
 
 ### Tasks
 
@@ -275,22 +275,32 @@
 
 ---
 
-#### 3. Email Parsing & Storage
-- [ ] Email parser
-  - Headers parsing (RFC 5322)
-  - Body extraction (text/html)
-  - Attachment extraction
-  - MIME decoding
-- [ ] SwiftData integration
-  - Save messages to SwiftData
-  - Save attachments to file system
-  - Indexing per ricerca full-text
-- [ ] PEC handling speciale
-  - Riconoscere email PEC (headers specifici)
-  - Parse allegati PEC (daticert.xml, postacert.eml)
-  - UI speciale per visualizzare certificazioni
+#### 3. Email Parsing & Storage ✅ COMPLETATO
+- [x] Email parser
+  - [x] Headers parsing (RFC 5322)
+  - [x] Body extraction (text/html)
+  - [x] Attachment extraction
+  - [x] MIME decoding (base64, quoted-printable)
+  - [x] RFC 2047 header decoding (non-ASCII)
+  - [x] Multipart/alternative, multipart/mixed
+- [x] SwiftData integration
+  - [x] Save messages to SwiftData
+  - [x] Save attachments to file system
+  - [x] Fetch messages per folder
+  - [x] Search full-text (subject, from, body)
+  - [x] Mark as read/unread, flagged
+  - [x] Delete with cascade (attachments)
+  - [x] Storage metrics (calculate size)
+- [x] PEC handling speciale
+  - [x] Riconoscere email PEC (headers X-Ricevuta, X-Tipo-Ricevuta)
+  - [x] Parse allegati PEC (daticert.xml, postacert.eml)
+  - [x] Extract PEC metadata (mittente, destinatario, gestore)
+  - [x] Detect PEC type (accettazione, consegna, errore, etc.)
+  - [ ] UI speciale per visualizzare certificazioni (Task 6)
 
 **Stima:** 1-2 settimane
+**Completato:** 24 Dicembre 2024
+**Progresso:** ✅ 100% completato
 
 ---
 
