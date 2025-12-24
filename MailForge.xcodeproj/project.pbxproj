@@ -7,6 +7,30 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8F167D012EFC455A0053AAAA /* AccountSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167CFE2EFC455A0053AAAA /* AccountSetupView.swift */; };
+		8F167D022EFC455A0053AAAA /* AccountSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167CFD2EFC455A0053AAAA /* AccountSettingsView.swift */; };
+		8F167D1B2EFC467D0053AAAA /* EmailStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D132EFC467D0053AAAA /* EmailStorage.swift */; };
+		8F167D1C2EFC467D0053AAAA /* IMAPHandlers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D092EFC467D0053AAAA /* IMAPHandlers.swift */; };
+		8F167D1D2EFC467D0053AAAA /* Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D162EFC467D0053AAAA /* Account.swift */; };
+		8F167D1E2EFC467D0053AAAA /* Attachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D172EFC467D0053AAAA /* Attachment.swift */; };
+		8F167D1F2EFC467D0053AAAA /* IMAPClientTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D082EFC467D0053AAAA /* IMAPClientTest.swift */; };
+		8F167D202EFC467D0053AAAA /* Folder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D182EFC467D0053AAAA /* Folder.swift */; };
+		8F167D212EFC467D0053AAAA /* EmailParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D122EFC467D0053AAAA /* EmailParser.swift */; };
+		8F167D222EFC467D0053AAAA /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D192EFC467D0053AAAA /* Message.swift */; };
+		8F167D232EFC467D0053AAAA /* IMAPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D072EFC467D0053AAAA /* IMAPClient.swift */; };
+		8F167D242EFC467D0053AAAA /* IMAPTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D0B2EFC467D0053AAAA /* IMAPTypes.swift */; };
+		8F167D252EFC467D0053AAAA /* SMTPHandlers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D102EFC467D0053AAAA /* SMTPHandlers.swift */; };
+		8F167D262EFC467D0053AAAA /* MIMEMessageBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D0D2EFC467D0053AAAA /* MIMEMessageBuilder.swift */; };
+		8F167D272EFC467D0053AAAA /* PECHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D142EFC467D0053AAAA /* PECHandler.swift */; };
+		8F167D282EFC467D0053AAAA /* AccountManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D032EFC467D0053AAAA /* AccountManager.swift */; };
+		8F167D292EFC467D0053AAAA /* IMAPResponseCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D0A2EFC467D0053AAAA /* IMAPResponseCollector.swift */; };
+		8F167D2A2EFC467D0053AAAA /* SMTPClientTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D0F2EFC467D0053AAAA /* SMTPClientTest.swift */; };
+		8F167D2B2EFC467D0053AAAA /* SMTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D0E2EFC467D0053AAAA /* SMTPClient.swift */; };
+		8F167D2C2EFC467D0053AAAA /* AccountPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D042EFC467D0053AAAA /* AccountPreset.swift */; };
+		8F167D342EFC468F0053AAAA /* ConfigurationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D312EFC468F0053AAAA /* ConfigurationManager.swift */; };
+		8F167D352EFC468F0053AAAA /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D322EFC468F0053AAAA /* KeychainManager.swift */; };
+		8F167D362EFC468F0053AAAA /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D332EFC468F0053AAAA /* Logger.swift */; };
+		8F167D372EFC468F0053AAAA /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D302EFC468F0053AAAA /* AppError.swift */; };
 		A10000001 /* MailForgeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000001 /* MailForgeApp.swift */; };
 		A10000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000002 /* ContentView.swift */; };
 		A10000003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000003 /* Assets.xcassets */; };
@@ -23,6 +47,30 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		8F167CFD2EFC455A0053AAAA /* AccountSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSettingsView.swift; sourceTree = "<group>"; };
+		8F167CFE2EFC455A0053AAAA /* AccountSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSetupView.swift; sourceTree = "<group>"; };
+		8F167D032EFC467D0053AAAA /* AccountManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountManager.swift; sourceTree = "<group>"; };
+		8F167D042EFC467D0053AAAA /* AccountPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountPreset.swift; sourceTree = "<group>"; };
+		8F167D072EFC467D0053AAAA /* IMAPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMAPClient.swift; sourceTree = "<group>"; };
+		8F167D082EFC467D0053AAAA /* IMAPClientTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMAPClientTest.swift; sourceTree = "<group>"; };
+		8F167D092EFC467D0053AAAA /* IMAPHandlers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMAPHandlers.swift; sourceTree = "<group>"; };
+		8F167D0A2EFC467D0053AAAA /* IMAPResponseCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMAPResponseCollector.swift; sourceTree = "<group>"; };
+		8F167D0B2EFC467D0053AAAA /* IMAPTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMAPTypes.swift; sourceTree = "<group>"; };
+		8F167D0D2EFC467D0053AAAA /* MIMEMessageBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MIMEMessageBuilder.swift; sourceTree = "<group>"; };
+		8F167D0E2EFC467D0053AAAA /* SMTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMTPClient.swift; sourceTree = "<group>"; };
+		8F167D0F2EFC467D0053AAAA /* SMTPClientTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMTPClientTest.swift; sourceTree = "<group>"; };
+		8F167D102EFC467D0053AAAA /* SMTPHandlers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMTPHandlers.swift; sourceTree = "<group>"; };
+		8F167D122EFC467D0053AAAA /* EmailParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailParser.swift; sourceTree = "<group>"; };
+		8F167D132EFC467D0053AAAA /* EmailStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailStorage.swift; sourceTree = "<group>"; };
+		8F167D142EFC467D0053AAAA /* PECHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PECHandler.swift; sourceTree = "<group>"; };
+		8F167D162EFC467D0053AAAA /* Account.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Account.swift; sourceTree = "<group>"; };
+		8F167D172EFC467D0053AAAA /* Attachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Attachment.swift; sourceTree = "<group>"; };
+		8F167D182EFC467D0053AAAA /* Folder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Folder.swift; sourceTree = "<group>"; };
+		8F167D192EFC467D0053AAAA /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
+		8F167D302EFC468F0053AAAA /* AppError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppError.swift; sourceTree = "<group>"; };
+		8F167D312EFC468F0053AAAA /* ConfigurationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationManager.swift; sourceTree = "<group>"; };
+		8F167D322EFC468F0053AAAA /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
+		8F167D332EFC468F0053AAAA /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		A00000001 /* MailForge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MailForge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000001 /* MailForgeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailForgeApp.swift; sourceTree = "<group>"; };
 		A20000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -51,6 +99,106 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		8F167CFF2EFC455A0053AAAA /* Account */ = {
+			isa = PBXGroup;
+			children = (
+				8F167CFD2EFC455A0053AAAA /* AccountSettingsView.swift */,
+				8F167CFE2EFC455A0053AAAA /* AccountSetupView.swift */,
+			);
+			path = Account;
+			sourceTree = "<group>";
+		};
+		8F167D002EFC455A0053AAAA /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				8F167CFF2EFC455A0053AAAA /* Account */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		8F167D052EFC467D0053AAAA /* Account */ = {
+			isa = PBXGroup;
+			children = (
+				8F167D032EFC467D0053AAAA /* AccountManager.swift */,
+				8F167D042EFC467D0053AAAA /* AccountPreset.swift */,
+			);
+			path = Account;
+			sourceTree = "<group>";
+		};
+		8F167D062EFC467D0053AAAA /* Data */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
+		8F167D0C2EFC467D0053AAAA /* IMAP */ = {
+			isa = PBXGroup;
+			children = (
+				8F167D072EFC467D0053AAAA /* IMAPClient.swift */,
+				8F167D082EFC467D0053AAAA /* IMAPClientTest.swift */,
+				8F167D092EFC467D0053AAAA /* IMAPHandlers.swift */,
+				8F167D0A2EFC467D0053AAAA /* IMAPResponseCollector.swift */,
+				8F167D0B2EFC467D0053AAAA /* IMAPTypes.swift */,
+			);
+			path = IMAP;
+			sourceTree = "<group>";
+		};
+		8F167D112EFC467D0053AAAA /* SMTP */ = {
+			isa = PBXGroup;
+			children = (
+				8F167D0D2EFC467D0053AAAA /* MIMEMessageBuilder.swift */,
+				8F167D0E2EFC467D0053AAAA /* SMTPClient.swift */,
+				8F167D0F2EFC467D0053AAAA /* SMTPClientTest.swift */,
+				8F167D102EFC467D0053AAAA /* SMTPHandlers.swift */,
+			);
+			path = SMTP;
+			sourceTree = "<group>";
+		};
+		8F167D152EFC467D0053AAAA /* Email */ = {
+			isa = PBXGroup;
+			children = (
+				8F167D0C2EFC467D0053AAAA /* IMAP */,
+				8F167D112EFC467D0053AAAA /* SMTP */,
+				8F167D122EFC467D0053AAAA /* EmailParser.swift */,
+				8F167D132EFC467D0053AAAA /* EmailStorage.swift */,
+				8F167D142EFC467D0053AAAA /* PECHandler.swift */,
+			);
+			path = Email;
+			sourceTree = "<group>";
+		};
+		8F167D1A2EFC467D0053AAAA /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				8F167D162EFC467D0053AAAA /* Account.swift */,
+				8F167D172EFC467D0053AAAA /* Attachment.swift */,
+				8F167D182EFC467D0053AAAA /* Folder.swift */,
+				8F167D192EFC467D0053AAAA /* Message.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		8F167D2D2EFC46850053AAAA /* Composer */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Composer;
+			sourceTree = "<group>";
+		};
+		8F167D2E2EFC46850053AAAA /* Inbox */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Inbox;
+			sourceTree = "<group>";
+		};
+		8F167D2F2EFC46850053AAAA /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
 		A50000000 = {
 			isa = PBXGroup;
 			children = (
@@ -93,6 +241,7 @@
 		A50000011 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				8F167D002EFC455A0053AAAA /* Views */,
 				A50000020 /* DesignSystem */,
 				A50000021 /* Components */,
 			);
@@ -102,6 +251,10 @@
 		A50000012 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				8F167D052EFC467D0053AAAA /* Account */,
+				8F167D062EFC467D0053AAAA /* Data */,
+				8F167D152EFC467D0053AAAA /* Email */,
+				8F167D1A2EFC467D0053AAAA /* Models */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -109,6 +262,9 @@
 		A50000013 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				8F167D2D2EFC46850053AAAA /* Composer */,
+				8F167D2E2EFC46850053AAAA /* Inbox */,
+				8F167D2F2EFC46850053AAAA /* Settings */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -116,6 +272,10 @@
 		A50000014 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				8F167D302EFC468F0053AAAA /* AppError.swift */,
+				8F167D312EFC468F0053AAAA /* ConfigurationManager.swift */,
+				8F167D322EFC468F0053AAAA /* KeychainManager.swift */,
+				8F167D332EFC468F0053AAAA /* Logger.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -220,6 +380,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000002 /* ContentView.swift in Sources */,
+				8F167D342EFC468F0053AAAA /* ConfigurationManager.swift in Sources */,
+				8F167D352EFC468F0053AAAA /* KeychainManager.swift in Sources */,
+				8F167D362EFC468F0053AAAA /* Logger.swift in Sources */,
+				8F167D372EFC468F0053AAAA /* AppError.swift in Sources */,
 				A10000001 /* MailForgeApp.swift in Sources */,
 				A10000010 /* Colors.swift in Sources */,
 				A10000011 /* Typography.swift in Sources */,
@@ -227,6 +391,26 @@
 				A10000020 /* DSButton.swift in Sources */,
 				A10000021 /* DSTextField.swift in Sources */,
 				A10000022 /* DSCard.swift in Sources */,
+				8F167D1B2EFC467D0053AAAA /* EmailStorage.swift in Sources */,
+				8F167D1C2EFC467D0053AAAA /* IMAPHandlers.swift in Sources */,
+				8F167D1D2EFC467D0053AAAA /* Account.swift in Sources */,
+				8F167D1E2EFC467D0053AAAA /* Attachment.swift in Sources */,
+				8F167D1F2EFC467D0053AAAA /* IMAPClientTest.swift in Sources */,
+				8F167D202EFC467D0053AAAA /* Folder.swift in Sources */,
+				8F167D212EFC467D0053AAAA /* EmailParser.swift in Sources */,
+				8F167D222EFC467D0053AAAA /* Message.swift in Sources */,
+				8F167D232EFC467D0053AAAA /* IMAPClient.swift in Sources */,
+				8F167D242EFC467D0053AAAA /* IMAPTypes.swift in Sources */,
+				8F167D252EFC467D0053AAAA /* SMTPHandlers.swift in Sources */,
+				8F167D262EFC467D0053AAAA /* MIMEMessageBuilder.swift in Sources */,
+				8F167D272EFC467D0053AAAA /* PECHandler.swift in Sources */,
+				8F167D282EFC467D0053AAAA /* AccountManager.swift in Sources */,
+				8F167D292EFC467D0053AAAA /* IMAPResponseCollector.swift in Sources */,
+				8F167D2A2EFC467D0053AAAA /* SMTPClientTest.swift in Sources */,
+				8F167D2B2EFC467D0053AAAA /* SMTPClient.swift in Sources */,
+				8F167D2C2EFC467D0053AAAA /* AccountPreset.swift in Sources */,
+				8F167D012EFC455A0053AAAA /* AccountSetupView.swift in Sources */,
+				8F167D022EFC455A0053AAAA /* AccountSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -412,20 +596,20 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		B10000001 /* Build configuration list for PBXProject "MailForge" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				C00000001 /* Debug */,
-				C00000002 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		A70000001 /* Build configuration list for PBXNativeTarget "MailForge" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C10000001 /* Debug */,
 				C10000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B10000001 /* Build configuration list for PBXProject "MailForge" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C00000001 /* Debug */,
+				C00000002 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

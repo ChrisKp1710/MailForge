@@ -157,6 +157,7 @@ enum SMTPError: AppErrorProtocol {
     case timeout
     case networkUnavailable
     case tlsError
+    case serverError(message: String)
 
     var title: String {
         return "SMTP Error"

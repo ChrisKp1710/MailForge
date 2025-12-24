@@ -178,9 +178,9 @@
 **Obiettivo:** Client email funzionante - lettura, invio, gestione base. Focus su PEC + IMAP generico.
 
 **Status:** 🟡 In Progress
-**Completamento:** 45%
+**Completamento:** 60%
 **Iniziato:** 23 Dicembre 2024
-**Ultimo Update:** Task 1, 2 & 3 (IMAP + SMTP + Email Parsing) completati!
+**Ultimo Update:** Task 1, 2, 3 & 4 completati! (IMAP + SMTP + Parsing + Accounts)
 
 ### Tasks
 
@@ -304,23 +304,33 @@
 
 ---
 
-#### 4. Account Management
-- [ ] Account setup flow
-  - UI per aggiungere account
-  - Form: email, password, IMAP/SMTP hosts, ports
-  - Preset per PEC IONOS
-  - Test connessione
-  - Save credenziali in Keychain
-- [ ] Multi-account support
-  - Switch tra account
-  - Unified inbox
-  - Per-account inbox
-- [ ] Account settings
-  - Edit account
-  - Remove account
-  - Sync settings (frequency, etc.)
+#### 4. Account Management ✅ COMPLETATO
+- [x] Account setup flow
+  - [x] UI per aggiungere account (AccountSetupView)
+  - [x] Form: email, password con validazione
+  - [x] Preset per 7 provider (Gmail, IONOS PEC, Outlook, iCloud, Yahoo, ProtonMail, Generic)
+  - [x] Auto-detect provider da email domain
+  - [x] Test connessione IMAP + SMTP prima di salvare
+  - [x] Save credenziali in Keychain
+  - [x] Notes/help per ogni provider (App Password info, etc.)
+- [x] Multi-account support
+  - [x] AccountManager per gestione multi-account
+  - [x] Switch tra account
+  - [x] Unified inbox (tutti gli unread di tutti gli account)
+  - [x] Per-account inbox
+  - [x] Total unread count
+- [x] Account settings
+  - [x] AccountSettingsView per edit account
+  - [x] Edit display name
+  - [x] Change password
+  - [x] View server configuration (read-only)
+  - [x] Remove account con conferma
+  - [x] Cascade delete (email + attachments)
+  - [ ] Sync settings (frequency) - da fare in Task 10
 
 **Stima:** 1 settimana
+**Completato:** 24 Dicembre 2024
+**Progresso:** ✅ 100% completato
 
 ---
 
