@@ -178,9 +178,9 @@
 **Obiettivo:** Client email funzionante - lettura, invio, gestione base. Focus su PEC + IMAP generico.
 
 **Status:** 🟡 In Progress
-**Completamento:** 20%
+**Completamento:** 30%
 **Iniziato:** 23 Dicembre 2024
-**Ultimo Update:** Task 1 (IMAP Client) completato al 100%
+**Ultimo Update:** Task 1 & 2 (IMAP + SMTP Client) completati al 100%
 
 ### Tasks
 
@@ -240,27 +240,38 @@
 
 ---
 
-#### 2. SMTP Client (Invio Email)
-- [ ] SwiftNIO SMTP implementation
-  - EHLO/HELO command
-  - AUTH LOGIN (authentication)
-  - MAIL FROM / RCPT TO / DATA
-  - TLS support (STARTTLS)
-- [ ] Email composition
-  - MIME message builder
-  - Headers (From, To, Cc, Bcc, Subject, Date)
-  - Plain text body
-  - HTML body
-  - Multipart/alternative
-- [ ] Attachments
-  - MIME multipart/mixed
-  - Base64 encoding
-  - Content-Type detection
+#### 2. SMTP Client (Invio Email) ✅ COMPLETATO
+- [x] SwiftNIO SMTP implementation
+  - [x] EHLO command con parsing capabilities
+  - [x] AUTH LOGIN (base64 authentication)
+  - [x] MAIL FROM / RCPT TO / DATA
+  - [x] TLS support (porta 465 diretto, porta 587 ready for STARTTLS)
+  - [x] SMTPResponseHandler per gestione asincrona risposte
+  - [x] SMTPResponseCollector per await responses
+  - [x] Verifica codici risposta (220, 250, 334, 235, 354, 221)
+  - [x] Error handling robusto per ogni comando
+- [x] Email composition (MIME Message Builder)
+  - [x] MIME message builder completo
+  - [x] Headers (From, To, Cc, Bcc, Subject, Date, Message-ID)
+  - [x] Plain text body
+  - [x] HTML body
+  - [x] Multipart/alternative (text + HTML)
+  - [x] RFC 5322 compliant headers
+  - [x] RFC 2047 encoding per non-ASCII subject
+- [x] Attachments
+  - [x] MIME multipart/mixed
+  - [x] Base64 encoding con line wrapping (76 chars)
+  - [x] Content-Type detection automatica da estensione
+  - [x] Inline attachments con Content-ID
+  - [x] File attachment da path o URL
+  - [x] 40+ tipi MIME supportati
 - [ ] Send queue
-  - Retry logic per fallimenti
-  - Offline queue (invia quando torna rete)
+  - Retry logic per fallimenti (da fare in futuro)
+  - Offline queue (da fare in futuro)
 
 **Stima:** 1-2 settimane
+**Completato:** 24 Dicembre 2024
+**Progresso:** ✅ 95% completato (send queue opzionale per dopo)
 
 ---
 

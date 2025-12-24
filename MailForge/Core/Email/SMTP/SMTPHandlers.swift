@@ -173,3 +173,135 @@ enum SMTPResponseCode: Int {
         }
     }
 }
+
+// MARK: - SMTP Response Handler
+
+/// Channel handler that processes SMTP server responses
+final class SMTPResponseHandler: ChannelInboundHandler {
+    typealias InboundIn = String
+
+    /// Active response collector (waiting for server response)
+    private var collector: SMTPResponseCollector?
+    private let collectorLock = NSLock()
+
+    /// Logger category
+    private let logCategory: Logger.Category = .smtp
+
+    // MARK: - Channel Handler
+
+    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        let line = unwrapInboundIn(data)
+
+        // Parse SMTP response
+        guard let response = SMTPResponse.parse(line) else {
+            Logger.warning("Failed to parse SMTP response: \(line)", category: logCategory)
+            return
+        }
+
+        Logger.debug("SMTP response: \(response.code) - \(response.message)", category: logCategory)
+
+        // Forward to collector if one is registered
+        collectorLock.lock()
+        defer { collectorLock.unlock() }
+
+        if let collector = collector {
+            collector.addResponse(response)
+
+            // If this is the final line (not multi-line), complete the collector
+            if !response.isMultiLine {
+                collector.complete()
+                self.collector = nil
+            }
+        }
+    }
+
+    func errorCaught(context: ChannelHandlerContext, error: Error) {
+        Logger.error("SMTP handler error", error: error, category: logCategory)
+
+        collectorLock.lock()
+        defer { collectorLock.unlock() }
+
+        if let collector = collector {
+            collector.fail(error: error)
+            self.collector = nil
+        }
+
+        context.fireErrorCaught(error)
+    }
+
+    // MARK: - Collector Management
+
+    /// Register a collector to receive the next response
+    func registerCollector(_ collector: SMTPResponseCollector) {
+        collectorLock.lock()
+        defer { collectorLock.unlock() }
+
+        self.collector = collector
+    }
+}
+
+// MARK: - SMTP Response Collector
+
+/// Collects SMTP responses for a single command/operation
+final class SMTPResponseCollector {
+
+    /// Collected responses (can be multi-line)
+    private var responses: [SMTPResponse] = []
+
+    /// Continuation to resume when response is complete
+    private var continuation: CheckedContinuation<[SMTPResponse], Error>?
+
+    /// Lock for thread-safe access
+    private let lock = NSLock()
+
+    /// Logger category
+    private let logCategory: Logger.Category = .smtp
+
+    // MARK: - Response Collection
+
+    /// Add a response line
+    func addResponse(_ response: SMTPResponse) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        responses.append(response)
+        Logger.debug("Collected SMTP response: \(response.code) - \(response.message)", category: logCategory)
+    }
+
+    /// Mark collection as complete and resume waiting task
+    func complete() {
+        lock.lock()
+        defer { lock.unlock() }
+
+        if let continuation = continuation {
+            Logger.debug("SMTP response collection complete: \(responses.count) line(s)", category: logCategory)
+            continuation.resume(returning: responses)
+            self.continuation = nil
+        }
+    }
+
+    /// Fail the collection with an error
+    func fail(error: Error) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        if let continuation = continuation {
+            Logger.error("SMTP response collection failed", error: error, category: logCategory)
+            continuation.resume(throwing: error)
+            self.continuation = nil
+        }
+    }
+
+    // MARK: - Async Wait
+
+    /// Wait for the response to be collected
+    /// - Returns: Array of SMTP responses (multi-line responses will have multiple entries)
+    func wait() async throws -> [SMTPResponse] {
+        return try await withCheckedThrowingContinuation { continuation in
+            lock.lock()
+            defer { lock.unlock() }
+
+            self.continuation = continuation
+        }
+    }
+}

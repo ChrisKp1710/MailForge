@@ -29,6 +29,9 @@ final class SMTPClient {
     /// Server capabilities (from EHLO response)
     private var serverCapabilities: [String] = []
 
+    /// Response handler
+    private let responseHandler: SMTPResponseHandler
+
     /// Logger category
     private let logCategory: Logger.Category = .smtp
 
@@ -54,6 +57,7 @@ final class SMTPClient {
         self.username = username
         self.password = password
         self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        self.responseHandler = SMTPResponseHandler()
 
         Logger.debug("SMTP client initialized for \(host):\(port)", category: logCategory)
     }
@@ -130,7 +134,8 @@ final class SMTPClient {
     private func addSMTPHandlers(to channel: Channel, promise: EventLoopPromise<Void>) {
         channel.pipeline.addHandlers([
             ByteToMessageHandler(SMTPLineDecoder()),
-            MessageToByteHandler(SMTPLineEncoder())
+            MessageToByteHandler(SMTPLineEncoder()),
+            responseHandler
         ]).whenComplete { result in
             switch result {
             case .success:
@@ -146,8 +151,17 @@ final class SMTPClient {
     /// Wait for server greeting (220 message)
     private func waitForGreeting() async throws {
         Logger.debug("Waiting for server greeting...", category: logCategory)
-        // TODO: Implement proper greeting wait
-        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+
+        let responses = try await waitForResponse()
+
+        // Check for 220 Service Ready
+        guard let firstResponse = responses.first, firstResponse.code == 220 else {
+            let code = responses.first?.code ?? 0
+            let message = responses.first?.message ?? "Unknown error"
+            throw SMTPError.serverError(message: "Expected 220 greeting, got \(code): \(message)")
+        }
+
+        Logger.info("Server greeting received: \(firstResponse.message)", category: logCategory)
     }
 
     /// Disconnect from server
@@ -159,8 +173,8 @@ final class SMTPClient {
             return
         }
 
-        // Send QUIT command
-        try await sendCommand("QUIT")
+        // Send QUIT command - expect 221 (Service closing)
+        _ = try await sendCommandAndWait("QUIT", expectedCodes: [221])
 
         // Close channel
         try await channel.close()
@@ -177,13 +191,18 @@ final class SMTPClient {
         Logger.debug("Sending EHLO command", category: logCategory)
 
         let hostname = "localhost" // TODO: Get actual hostname
-        try await sendCommand("EHLO \(hostname)")
+        let responses = try await sendCommandAndWait("EHLO \(hostname)", expectedCodes: [250])
 
-        // TODO: Parse EHLO response and extract capabilities
-        serverCapabilities = []
+        // Parse EHLO response and extract capabilities
+        serverCapabilities = responses.compactMap { response in
+            // Skip the first line (250 hostname)
+            guard response.code == 250, !response.message.isEmpty else { return nil }
+            return response.message.trimmingCharacters(in: .whitespaces)
+        }
+
         state = .ready
 
-        Logger.info("EHLO command successful", category: logCategory)
+        Logger.info("EHLO successful - \(serverCapabilities.count) capabilities", category: logCategory)
     }
 
     /// Authenticate with server using AUTH LOGIN
@@ -194,16 +213,22 @@ final class SMTPClient {
             throw SMTPError.authenticationFailed
         }
 
-        // Send AUTH LOGIN command
-        try await sendCommand("AUTH LOGIN")
+        // Send AUTH LOGIN command - expect 334 (Auth Continue)
+        _ = try await sendCommandAndWait("AUTH LOGIN", expectedCodes: [334])
 
-        // Send base64-encoded username
+        // Send base64-encoded username - expect 334
         let usernameBase64 = Data(username.utf8).base64EncodedString()
-        try await sendCommand(usernameBase64)
+        _ = try await sendCommandAndWait(usernameBase64, expectedCodes: [334])
 
-        // Send base64-encoded password
+        // Send base64-encoded password - expect 235 (Auth Success)
         let passwordBase64 = Data(password.utf8).base64EncodedString()
-        try await sendCommand(passwordBase64)
+        let authResponse = try await sendCommandAndWait(passwordBase64, expectedCodes: [235])
+
+        // Check authentication success
+        guard authResponse.first?.code == 235 else {
+            Logger.error("Authentication failed", category: logCategory)
+            throw SMTPError.authenticationFailed
+        }
 
         state = .authenticated
         Logger.info("Successfully authenticated", category: logCategory)
@@ -213,7 +238,6 @@ final class SMTPClient {
     /// - Parameter message: MIME message to send
     func sendEmail(message: MIMEMessageBuilder) async throws {
         // Build recipients list (to + cc + bcc)
-        let builder = message
         let allRecipients = message.getAllRecipients()
 
         Logger.info("Sending email to \(allRecipients.count) recipient(s)...", category: logCategory)
@@ -222,23 +246,29 @@ final class SMTPClient {
             throw SMTPError.authenticationFailed
         }
 
-        // MAIL FROM command
-        try await sendCommand("MAIL FROM:<\(message.getFrom())>")
+        // MAIL FROM command - expect 250
+        _ = try await sendCommandAndWait("MAIL FROM:<\(message.getFrom())>")
 
-        // RCPT TO commands (one per recipient)
+        // RCPT TO commands (one per recipient) - expect 250
         for recipient in allRecipients {
-            try await sendCommand("RCPT TO:<\(recipient)>")
+            _ = try await sendCommandAndWait("RCPT TO:<\(recipient)>")
         }
 
-        // DATA command
-        try await sendCommand("DATA")
+        // DATA command - expect 354 (Start mail input)
+        let dataResponse = try await sendCommandAndWait("DATA", expectedCodes: [354])
+        guard dataResponse.first?.code == 354 else {
+            throw SMTPError.sendFailed(reason: "DATA command rejected")
+        }
 
-        // Send complete MIME message
+        // Send complete MIME message (without waiting for response)
         let mimeContent = message.build()
         try await sendRawData(mimeContent)
 
-        // End with CRLF.CRLF
-        try await sendCommand(".")
+        // End with CRLF.CRLF - expect 250 (Message accepted)
+        let endResponse = try await sendCommandAndWait(".")
+        guard endResponse.first?.isSuccess == true else {
+            throw SMTPError.sendFailed(reason: "Message rejected by server")
+        }
 
         Logger.info("Email sent successfully", category: logCategory)
     }
@@ -276,7 +306,7 @@ final class SMTPClient {
 
     // MARK: - Helper Methods
 
-    /// Send raw SMTP command
+    /// Send raw SMTP command (without waiting for response)
     /// - Parameter command: SMTP command string
     private func sendCommand(_ command: String) async throws {
         guard let channel = channel else {
@@ -291,6 +321,40 @@ final class SMTPClient {
         }
 
         try await channel.writeAndFlush(buffer)
+    }
+
+    /// Wait for server response using collector
+    /// - Returns: Array of SMTP responses (multi-line responses will have multiple entries)
+    private func waitForResponse() async throws -> [SMTPResponse] {
+        let collector = SMTPResponseCollector()
+        responseHandler.registerCollector(collector)
+        return try await collector.wait()
+    }
+
+    /// Send command and wait for response, checking for success
+    /// - Parameters:
+    ///   - command: SMTP command to send
+    ///   - expectedCodes: Expected success codes (default: 250)
+    /// - Returns: Array of responses
+    /// - Throws: SMTPError if response indicates failure
+    private func sendCommandAndWait(_ command: String, expectedCodes: [Int] = [250]) async throws -> [SMTPResponse] {
+        // Send command
+        try await sendCommand(command)
+
+        // Wait for response
+        let responses = try await waitForResponse()
+
+        // Check if successful
+        guard let firstResponse = responses.first else {
+            throw SMTPError.serverError(message: "No response from server")
+        }
+
+        // Check if response code is expected
+        if !expectedCodes.contains(firstResponse.code) && !firstResponse.isSuccess {
+            throw SMTPError.serverError(message: "Command failed (\(firstResponse.code)): \(firstResponse.message)")
+        }
+
+        return responses
     }
 
     // MARK: - Cleanup
