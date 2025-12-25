@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 // MARK: - Account Settings View
 
@@ -37,7 +38,7 @@ struct AccountSettingsView: View {
 
     init(account: Account) {
         self.account = account
-        _displayName = State(initialValue: account.displayName)
+        _displayName = State(initialValue: account.name)
     }
 
     // MARK: - Body
@@ -91,7 +92,7 @@ struct AccountSettingsView: View {
                 deleteAccount()
             }
         } message: {
-            Text("Sei sicuro di voler eliminare l'account '\(account.email)'? Tutte le email e i dati associati verranno eliminati permanentemente.")
+            Text("Sei sicuro di voler eliminare l'account '\(account.emailAddress)'? Tutte le email e i dati associati verranno eliminati permanentemente.")
         }
     }
 
@@ -104,7 +105,7 @@ struct AccountSettingsView: View {
                     .font(.headlineLarge)
                     .foregroundColor(.textPrimary)
 
-                Text(account.email)
+                Text(account.emailAddress)
                     .font(.bodySmall)
                     .foregroundColor(.textSecondary)
             }
@@ -154,7 +155,7 @@ struct AccountSettingsView: View {
                     .font(.labelMedium)
                     .foregroundColor(.textSecondary)
 
-                Text(account.email)
+                Text(account.emailAddress)
                     .font(.bodyMedium)
                     .foregroundColor(.textPrimary)
             }
@@ -224,7 +225,7 @@ struct AccountSettingsView: View {
                     }
                 }
 
-                Text("\(account.imapServer):\(account.imapPort)")
+                Text("\(account.imapHost):\(account.imapPort)")
                     .font(.code)
                     .foregroundColor(.textPrimary)
             }
@@ -247,7 +248,7 @@ struct AccountSettingsView: View {
                     }
                 }
 
-                Text("\(account.smtpServer):\(account.smtpPort)")
+                Text("\(account.smtpHost):\(account.smtpPort)")
                     .font(.code)
                     .foregroundColor(.textPrimary)
             }
@@ -306,7 +307,7 @@ struct AccountSettingsView: View {
     // MARK: - Computed Properties
 
     private var hasChanges: Bool {
-        return displayName != account.displayName || !password.isEmpty
+        return displayName != account.name || !password.isEmpty
     }
 
     // MARK: - Actions
@@ -359,7 +360,7 @@ struct AccountSettingsView: View {
 }
 
 // MARK: - Preview
-
+/*
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(
@@ -368,19 +369,20 @@ struct AccountSettingsView: View {
     )
 
     let account = Account(
-        email: "test@example.com",
-        displayName: "Test Account",
+        name: "Test Account",
+        emailAddress: "test@example.com",
         type: .imap,
-        imapServer: "imap.example.com",
+        imapHost: "imap.example.com",
         imapPort: 993,
         imapUseTLS: true,
-        smtpServer: "smtp.example.com",
+        smtpHost: "smtp.example.com",
         smtpPort: 587,
         smtpUseTLS: true
     )
 
     container.mainContext.insert(account)
 
-    return AccountSettingsView(account: account)
+    AccountSettingsView(account: account)
         .modelContainer(container)
 }
+*/

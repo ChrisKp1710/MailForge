@@ -1,11 +1,11 @@
 import Foundation
 
 /// Configuration manager using UserDefaults for app settings
-final class ConfigurationManager {
+final class ConfigurationManager: @unchecked Sendable {
 
     // MARK: - Singleton
 
-    static let shared = ConfigurationManager()
+    nonisolated(unsafe) static let shared = ConfigurationManager()
 
     private init() {}
 

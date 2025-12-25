@@ -13,7 +13,7 @@ final class AccountManager {
     private let modelContext: ModelContext
 
     /// Keychain manager
-    private let keychainManager = KeychainManager()
+    private let keychainManager = KeychainManager.shared
 
     /// Currently selected account
     var currentAccount: Account?
@@ -48,7 +48,7 @@ final class AccountManager {
     private func loadAccounts() {
         do {
             let descriptor = FetchDescriptor<Account>(
-                sortBy: [SortDescriptor(\.email)]
+                sortBy: [SortDescriptor<Account>(\.emailAddress)]
             )
 
             accounts = try modelContext.fetch(descriptor)
@@ -80,29 +80,29 @@ final class AccountManager {
 
         // Validate email
         guard isValidEmail(email) else {
-            throw AccountError.invalidEmail(email)
+            throw AccountError.invalidEmailAddress
         }
 
         // Check if account already exists
-        if accounts.contains(where: { $0.email == email }) {
-            throw AccountError.duplicateAccount(email)
+        if accounts.contains(where: { $0.emailAddress == email }) {
+            throw AccountError.accountAlreadyExists
         }
 
         // Create account model
         let account = Account(
-            email: email,
-            displayName: displayName ?? email,
+            name: displayName ?? email,
+            emailAddress: email,
             type: preset.type,
-            imapServer: preset.imapHost,
+            imapHost: preset.imapHost,
             imapPort: preset.imapPort,
             imapUseTLS: preset.imapUseTLS,
-            smtpServer: preset.smtpHost,
+            smtpHost: preset.smtpHost,
             smtpPort: preset.smtpPort,
             smtpUseTLS: preset.smtpUseTLS
         )
 
         // Save password to keychain
-        try account.savePassword(password, using: keychainManager)
+        try account.savePassword(password)
 
         // Save account to SwiftData
         modelContext.insert(account)
@@ -127,17 +127,17 @@ final class AccountManager {
     /// - Parameter account: Account to test
     /// - Returns: True if connection successful
     func testIMAPConnection(for account: Account) async throws -> Bool {
-        Logger.info("Testing IMAP connection for \(account.email)...", category: logCategory)
+        Logger.info("Testing IMAP connection for \(account.emailAddress)...", category: logCategory)
 
-        guard let password = try account.loadPassword(using: keychainManager) else {
-            throw AccountError.passwordNotFound(account.email)
+        guard let password = try? account.loadPassword() else {
+            throw AccountError.passwordNotFound(emailAddress: account.emailAddress)
         }
 
         let client = IMAPClient(
-            host: account.imapServer,
+            host: account.imapHost,
             port: account.imapPort,
             useTLS: account.imapUseTLS,
-            username: account.email,
+            username: account.emailAddress,
             password: password
         )
 
@@ -157,17 +157,17 @@ final class AccountManager {
     /// - Parameter account: Account to test
     /// - Returns: True if connection successful
     func testSMTPConnection(for account: Account) async throws -> Bool {
-        Logger.info("Testing SMTP connection for \(account.email)...", category: logCategory)
+        Logger.info("Testing SMTP connection for \(account.emailAddress)...", category: logCategory)
 
-        guard let password = try account.loadPassword(using: keychainManager) else {
-            throw AccountError.passwordNotFound(account.email)
+        guard let password = try? account.loadPassword() else {
+            throw AccountError.passwordNotFound(emailAddress: account.emailAddress)
         }
 
         let client = SMTPClient(
-            host: account.smtpServer,
+            host: account.smtpHost,
             port: account.smtpPort,
             useTLS: account.smtpUseTLS,
-            username: account.email,
+            username: account.emailAddress,
             password: password
         )
 
@@ -189,7 +189,7 @@ final class AccountManager {
     /// Switch to different account
     /// - Parameter account: Account to switch to
     func switchToAccount(_ account: Account) {
-        Logger.info("Switching to account: \(account.email)", category: logCategory)
+        Logger.info("Switching to account: \(account.emailAddress)", category: logCategory)
 
         currentAccount = account
     }
@@ -206,16 +206,16 @@ final class AccountManager {
         displayName: String? = nil,
         password: String? = nil
     ) throws {
-        Logger.info("Updating account: \(account.email)", category: logCategory)
+        Logger.info("Updating account: \(account.emailAddress)", category: logCategory)
 
         // Update display name
         if let displayName = displayName {
-            account.displayName = displayName
+            account.name = displayName
         }
 
         // Update password
         if let password = password {
-            try account.savePassword(password, using: keychainManager)
+            try account.savePassword(password)
         }
 
         // Save changes
@@ -229,10 +229,10 @@ final class AccountManager {
     /// Delete account
     /// - Parameter account: Account to delete
     func deleteAccount(_ account: Account) throws {
-        Logger.info("Deleting account: \(account.email)", category: logCategory)
+        Logger.info("Deleting account: \(account.emailAddress)", category: logCategory)
 
         // Delete password from keychain
-        try? account.deletePassword(using: keychainManager)
+        try? account.deletePassword()
 
         // Delete from SwiftData (will cascade delete folders and messages)
         modelContext.delete(account)

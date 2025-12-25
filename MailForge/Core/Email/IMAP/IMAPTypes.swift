@@ -86,13 +86,13 @@ struct IMAPFolderInfo {
 // MARK: - IMAP Message Flags
 
 /// Standard IMAP message flags
-enum IMAPMessageFlag: String {
-    case seen = "\\Seen"
-    case answered = "\\Answered"
-    case flagged = "\\Flagged"
-    case deleted = "\\Deleted"
-    case draft = "\\Draft"
-    case recent = "\\Recent"
+enum IMAPMessageFlag {
+    case seen
+    case answered
+    case flagged
+    case deleted
+    case draft
+    case recent
 
     /// Custom flag (not standard)
     case custom(String)
@@ -217,7 +217,7 @@ indirect enum IMAPBodyStructure {
 // MARK: - IMAP Search Criteria
 
 /// Search criteria for IMAP SEARCH command
-enum IMAPSearchCriteria {
+indirect enum IMAPSearchCriteria {
     case all
     case answered
     case deleted

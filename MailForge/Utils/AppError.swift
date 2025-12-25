@@ -32,6 +32,7 @@ enum AccountError: AppErrorProtocol {
     case accountNotFound
     case missingIMAPSettings
     case missingSMTPSettings
+    case passwordNotFound(emailAddress: String)
 
     var title: String {
         return "Account Error"
@@ -51,6 +52,8 @@ enum AccountError: AppErrorProtocol {
             return "IMAP server settings are missing or incomplete"
         case .missingSMTPSettings:
             return "SMTP server settings are missing or incomplete"
+        case .passwordNotFound(let emailAddress):
+            return "Password not found for account \(emailAddress)"
         }
     }
 
@@ -68,6 +71,8 @@ enum AccountError: AppErrorProtocol {
             return "Please provide IMAP server host and port"
         case .missingSMTPSettings:
             return "Please provide SMTP server host and port"
+        case .passwordNotFound:
+            return "Please try adding the account again"
         }
     }
 
@@ -181,6 +186,8 @@ enum SMTPError: AppErrorProtocol {
             return "Network connection unavailable"
         case .tlsError:
             return "TLS/SSL connection failed"
+        case .serverError(let message):
+            return "SMTP server error: \(message)"
         }
     }
 
@@ -202,6 +209,8 @@ enum SMTPError: AppErrorProtocol {
             return "Please connect to the internet and try again"
         case .tlsError:
             return "Check SSL/TLS settings or contact your email provider"
+        case .serverError:
+            return "Contact your email provider for assistance"
         }
     }
 

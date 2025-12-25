@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 // MARK: - Account Setup View
 
@@ -289,19 +290,19 @@ struct AccountSetupView: View {
             do {
                 // Create temporary account for testing
                 let tempAccount = Account(
-                    email: email,
-                    displayName: displayName.isEmpty ? email : displayName,
+                    name: displayName.isEmpty ? email : displayName,
+                    emailAddress: email,
                     type: selectedPreset.type,
-                    imapServer: selectedPreset.imapHost,
+                    imapHost: selectedPreset.imapHost,
                     imapPort: selectedPreset.imapPort,
                     imapUseTLS: selectedPreset.imapUseTLS,
-                    smtpServer: selectedPreset.smtpHost,
+                    smtpHost: selectedPreset.smtpHost,
                     smtpPort: selectedPreset.smtpPort,
                     smtpUseTLS: selectedPreset.smtpUseTLS
                 )
 
                 // Save password temporarily
-                try tempAccount.savePassword(password, using: KeychainManager())
+                try tempAccount.savePassword(password)
 
                 // Test IMAP
                 _ = try await accountManager.testIMAPConnection(for: tempAccount)
@@ -310,7 +311,7 @@ struct AccountSetupView: View {
                 _ = try await accountManager.testSMTPConnection(for: tempAccount)
 
                 // Cleanup temp password
-                try? tempAccount.deletePassword(using: KeychainManager())
+                try? tempAccount.deletePassword()
 
                 // Success
                 await MainActor.run {

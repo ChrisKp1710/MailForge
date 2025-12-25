@@ -102,41 +102,41 @@ final class PECHandler {
         // Check X-Ricevuta header
         if let ricevuta = headers["X-Ricevuta"]?.lowercased() {
             if ricevuta.contains("accettazione") {
-                return .accettazione
+                return .receipt
             } else if ricevuta.contains("consegna") {
-                return .consegna
+                return .delivery
             } else if ricevuta.contains("errore") || ricevuta.contains("mancata-consegna") {
-                return .errorConsegna
+                return .error
             }
         }
 
         // Check X-Tipo-Ricevuta
         if let tipoRicevuta = headers["X-Tipo-Ricevuta"]?.lowercased() {
             if tipoRicevuta.contains("accettazione") {
-                return .accettazione
+                return .receipt
             } else if tipoRicevuta.contains("consegna") {
-                return .consegna
+                return .delivery
             } else if tipoRicevuta.contains("errore-consegna") {
-                return .errorConsegna
+                return .error
             } else if tipoRicevuta.contains("presa-in-carico") {
-                return .presaInCarico
+                return .receipt
             } else if tipoRicevuta.contains("virus") {
-                return .rilevamentoVirus
+                return .anomaly
             }
         }
 
         // Check subject for keywords
         let subject = headers["Subject"]?.lowercased() ?? ""
         if subject.contains("accettazione") {
-            return .accettazione
+            return .receipt
         } else if subject.contains("consegna") {
-            return .consegna
+            return .delivery
         } else if subject.contains("errore") || subject.contains("mancata consegna") {
-            return .errorConsegna
+            return .error
         }
 
         // Default: normal PEC message
-        return .message
+        return .standard
     }
 
     // MARK: - Parse Daticert.xml
@@ -229,18 +229,6 @@ struct PECData {
 
     /// Security verification info
     let verification: String?
-}
-
-// MARK: - PEC Type
-
-/// Type of PEC message
-enum PECType: String {
-    case message = "Messaggio PEC"
-    case accettazione = "Ricevuta di Accettazione"
-    case presaInCarico = "Ricevuta di Presa in Carico"
-    case consegna = "Ricevuta di Consegna"
-    case errorConsegna = "Ricevuta di Mancata Consegna"
-    case rilevamentoVirus = "Ricevuta di Rilevamento Virus"
 }
 
 // MARK: - Daticert Data

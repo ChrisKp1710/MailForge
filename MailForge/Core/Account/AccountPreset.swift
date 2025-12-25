@@ -231,20 +231,8 @@ extension AccountType {
             return "envelope.badge.fill"
         case .outlook:
             return "envelope.badge.fill"
-        }
-    }
-
-    /// Display name for account type
-    var displayName: String {
-        switch self {
-        case .imap:
-            return "IMAP"
-        case .pec:
-            return "PEC"
-        case .gmail:
-            return "Gmail"
-        case .outlook:
-            return "Outlook"
+        case .exchange:
+            return "building.2.fill"
         }
     }
 }

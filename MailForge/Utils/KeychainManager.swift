@@ -2,11 +2,11 @@ import Foundation
 import Security
 
 /// Secure keychain manager for storing email credentials
-final class KeychainManager {
+final class KeychainManager: @unchecked Sendable {
 
     // MARK: - Singleton
 
-    static let shared = KeychainManager()
+    nonisolated(unsafe) static let shared = KeychainManager()
 
     private init() {}
 

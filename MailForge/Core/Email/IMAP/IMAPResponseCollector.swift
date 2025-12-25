@@ -115,8 +115,17 @@ struct IMAPCommandResult {
         var folders: [IMAPFolder] = []
 
         for response in untagged {
-            if case .list(let folderList) = response {
-                folders.append(contentsOf: folderList)
+            if case .list(let folderNames) = response {
+                // Convert folder names to IMAPFolder objects
+                let imapFolders = folderNames.map { name in
+                    IMAPFolder(
+                        name: name,
+                        path: name,
+                        delimiter: "/",
+                        attributes: []
+                    )
+                }
+                folders.append(contentsOf: imapFolders)
             }
         }
 
