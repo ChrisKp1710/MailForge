@@ -64,11 +64,25 @@ struct SidebarView: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        ContentUnavailableView(
-            "Nessun account",
-            systemImage: "envelope.badge.shield.half.filled",
-            description: Text("Aggiungi un account email per iniziare")
-        )
+        VStack(spacing: Spacing.lg) {
+            Image(systemName: "envelope.badge.shield.half.filled")
+                .font(.system(size: 48))
+                .foregroundColor(.textSecondary)
+
+            Text("Nessun account")
+                .font(.headlineSmall)
+                .foregroundColor(.textPrimary)
+
+            Text("Aggiungi un account email per iniziare")
+                .font(.bodySmall)
+                .foregroundColor(.textSecondary)
+                .multilineTextAlignment(.center)
+
+            DSButton("Aggiungi Account", icon: "plus", style: .primary) {
+                onAddAccount()
+            }
+        }
+        .padding(Spacing.xl)
     }
 
     // MARK: - Accounts List
@@ -160,7 +174,7 @@ struct SidebarView: View {
                     .foregroundColor(folderColor(for: folder))
                     .frame(width: 16)
 
-                Text(folder.displayName)
+                Text(folder.name)
                     .font(.bodySmall)
                     .foregroundColor(.textPrimary)
 

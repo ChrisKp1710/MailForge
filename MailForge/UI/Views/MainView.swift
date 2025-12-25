@@ -48,11 +48,20 @@ struct MainView: View {
             if let message = selectedMessage {
                 MessageDetailView(message: message)
             } else {
-                ContentUnavailableView(
-                    "Nessun messaggio selezionato",
-                    systemImage: "envelope.open",
-                    description: Text("Seleziona un messaggio dalla lista per visualizzarlo")
-                )
+                VStack(spacing: Spacing.lg) {
+                    Image(systemName: "envelope.open")
+                        .font(.system(size: 64))
+                        .foregroundColor(.textSecondary)
+
+                    Text("Nessun messaggio selezionato")
+                        .font(.headlineLarge)
+                        .foregroundColor(.textPrimary)
+
+                    Text("Seleziona un messaggio dalla lista per visualizzarlo")
+                        .font(.bodyMedium)
+                        .foregroundColor(.textSecondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .sheet(isPresented: $showAccountSetup) {

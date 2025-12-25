@@ -152,24 +152,44 @@ struct MessageListView: View {
     // MARK: - No Folder Selected
 
     private var noFolderSelected: some View {
-        ContentUnavailableView(
-            "Seleziona una cartella",
-            systemImage: "folder",
-            description: Text("Scegli una cartella dalla sidebar per visualizzare i messaggi")
-        )
+        VStack(spacing: Spacing.lg) {
+            Image(systemName: "folder")
+                .font(.system(size: 64))
+                .foregroundColor(.textSecondary)
+
+            Text("Seleziona una cartella")
+                .font(.headlineLarge)
+                .foregroundColor(.textPrimary)
+
+            Text("Scegli una cartella dalla sidebar per visualizzare i messaggi")
+                .font(.bodyMedium)
+                .foregroundColor(.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(Spacing.xl)
     }
 
     // MARK: - Empty State
 
     private var emptyState: some View {
-        ContentUnavailableView(
-            searchText.isEmpty ? "Nessun messaggio" : "Nessun risultato",
-            systemImage: searchText.isEmpty ? "tray" : "magnifyingglass",
-            description: Text(searchText.isEmpty ?
+        VStack(spacing: Spacing.lg) {
+            Image(systemName: searchText.isEmpty ? "tray" : "magnifyingglass")
+                .font(.system(size: 64))
+                .foregroundColor(.textSecondary)
+
+            Text(searchText.isEmpty ? "Nessun messaggio" : "Nessun risultato")
+                .font(.headlineLarge)
+                .foregroundColor(.textPrimary)
+
+            Text(searchText.isEmpty ?
                 "Questa cartella è vuota" :
                 "Nessun messaggio corrisponde alla ricerca '\(searchText)'"
             )
-        )
+            .font(.bodyMedium)
+            .foregroundColor(.textSecondary)
+            .multilineTextAlignment(.center)
+        }
+        .padding(Spacing.xl)
     }
 
     // MARK: - Message List
