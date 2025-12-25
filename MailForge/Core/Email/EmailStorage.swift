@@ -52,30 +52,32 @@ final class EmailStorage {
         // Extract body text and HTML
         let (bodyText, bodyHTML) = extractBodies(from: parsedEmail.body)
 
+        // Extract attachments first
+        let parser = EmailParser()
+        let attachments = parser.extractAttachments(from: parsedEmail)
+
         // Create Message model
         let message = Message(
-            uid: uid,
-            messageId: parsedEmail.messageId ?? UUID().uuidString,
+            messageID: parsedEmail.messageId ?? UUID().uuidString,
+            uid: Int64(uid),
             subject: parsedEmail.subject ?? "(No Subject)",
             from: parsedEmail.from ?? "unknown@unknown.com",
             to: parsedEmail.to,
             cc: parsedEmail.cc,
             date: parsedEmail.date ?? Date(),
-            bodyText: bodyText,
-            bodyHTML: bodyHTML,
+            preview: (bodyText ?? "").prefix(150).trimmingCharacters(in: .whitespacesAndNewlines),
             isRead: flags.contains("\\Seen"),
             isFlagged: flags.contains("\\Flagged"),
-            isDeleted: flags.contains("\\Deleted"),
-            folder: folder
+            hasAttachments: !attachments.isEmpty
         )
 
-        // Save attachments
-        let parser = EmailParser()
-        let attachments = parser.extractAttachments(from: parsedEmail)
+        // Set folder relationship
+        message.folder = folder
 
+        // Save attachments
         for emailAttachment in attachments {
             let attachment = try await saveAttachment(emailAttachment, for: message)
-            message.addAttachment(attachment)
+            message.attachments.append(attachment)
         }
 
         // Insert into SwiftData
@@ -118,8 +120,8 @@ final class EmailStorage {
         let attachment = Attachment(
             filename: emailAttachment.filename,
             mimeType: emailAttachment.contentType,
-            size: emailAttachment.size,
-            localPath: filePath.path
+            size: Int64(emailAttachment.data.count),
+            filePath: filePath.path
         )
 
         Logger.debug("Attachment saved to: \(filePath.path)", category: logCategory)
@@ -167,12 +169,12 @@ final class EmailStorage {
     /// - Parameter folder: Folder to fetch messages from
     /// - Returns: Array of messages
     func fetchMessages(for folder: Folder) throws -> [Message] {
-        let descriptor = FetchDescriptor<Message>(
-            predicate: #Predicate { $0.folder == folder },
+        // Fetch all messages and filter manually due to Predicate limitations with relationships
+        let allMessages = try modelContext.fetch(FetchDescriptor<Message>(
             sortBy: [SortDescriptor(\.date, order: .reverse)]
-        )
+        ))
 
-        return try modelContext.fetch(descriptor)
+        return allMessages.filter { $0.folder == folder }
     }
 
     /// Fetch messages matching search criteria
@@ -181,16 +183,16 @@ final class EmailStorage {
     func search(text searchText: String) throws -> [Message] {
         let lowercased = searchText.lowercased()
 
-        let descriptor = FetchDescriptor<Message>(
-            predicate: #Predicate { message in
-                message.subject.lowercased().contains(lowercased) ||
-                message.from.lowercased().contains(lowercased) ||
-                (message.bodyText?.lowercased().contains(lowercased) ?? false)
-            },
+        // Fetch all messages and filter manually due to Predicate limitations with lowercased()
+        let allMessages = try modelContext.fetch(FetchDescriptor<Message>(
             sortBy: [SortDescriptor(\.date, order: .reverse)]
-        )
+        ))
 
-        return try modelContext.fetch(descriptor)
+        return allMessages.filter { message in
+            message.subject.lowercased().contains(lowercased) ||
+            message.from.lowercased().contains(lowercased) ||
+            (message.bodySnippet?.lowercased().contains(lowercased) ?? false)
+        }
     }
 
     /// Fetch unread messages count
@@ -200,16 +202,15 @@ final class EmailStorage {
         let descriptor: FetchDescriptor<Message>
 
         if let folder = folder {
-            descriptor = FetchDescriptor<Message>(
-                predicate: #Predicate { $0.folder == folder && !$0.isRead }
-            )
+            // Fetch all messages and filter manually due to Predicate limitations with relationships
+            let allMessages = try modelContext.fetch(FetchDescriptor<Message>())
+            return allMessages.filter { $0.folder == folder && !$0.isRead }.count
         } else {
             descriptor = FetchDescriptor<Message>(
                 predicate: #Predicate { !$0.isRead }
             )
+            return try modelContext.fetchCount(descriptor)
         }
-
-        return try modelContext.fetchCount(descriptor)
     }
 
     // MARK: - Update Message
@@ -220,7 +221,7 @@ final class EmailStorage {
         message.isRead = true
         try modelContext.save()
 
-        Logger.debug("Message marked as read: \(message.messageId)", category: logCategory)
+        Logger.debug("Message marked as read: \(message.messageID)", category: logCategory)
     }
 
     /// Mark message as unread
@@ -229,7 +230,7 @@ final class EmailStorage {
         message.isRead = false
         try modelContext.save()
 
-        Logger.debug("Message marked as unread: \(message.messageId)", category: logCategory)
+        Logger.debug("Message marked as unread: \(message.messageID)", category: logCategory)
     }
 
     /// Toggle flagged status
@@ -246,16 +247,14 @@ final class EmailStorage {
     func delete(_ message: Message) throws {
         // Delete attachments from file system
         for attachment in message.attachments {
-            if let localPath = attachment.localPath {
-                try? fileManager.removeItem(atPath: localPath)
-            }
+            try? fileManager.removeItem(atPath: attachment.filePath)
         }
 
         // Delete from SwiftData
         modelContext.delete(message)
         try modelContext.save()
 
-        Logger.info("Message deleted: \(message.messageId)", category: logCategory)
+        Logger.info("Message deleted: \(message.messageID)", category: logCategory)
     }
 
     // MARK: - File System
@@ -291,7 +290,7 @@ final class EmailStorage {
     /// Delete all emails and attachments for an account
     /// - Parameter account: Account to clean up
     func deleteAllEmails(for account: Account) throws {
-        Logger.info("Deleting all emails for account: \(account.email)", category: logCategory)
+        Logger.info("Deleting all emails for account: \(account.emailAddress)", category: logCategory)
 
         // Fetch all messages for this account's folders
         let folders = account.folders

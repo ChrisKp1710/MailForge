@@ -729,7 +729,7 @@ final class IMAPClient {
 // MARK: - IMAP State
 
 /// IMAP connection states
-enum IMAPState {
+enum IMAPState: Equatable {
     case notAuthenticated
     case authenticated
     case selected(folder: String)

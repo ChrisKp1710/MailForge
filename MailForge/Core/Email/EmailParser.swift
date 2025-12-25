@@ -218,8 +218,8 @@ final class EmailParser {
                         let secondIndex = text.index(after: nextIndex)
                         if secondIndex < text.endIndex {
                             let hexString = String(text[nextIndex...secondIndex])
-                            if let value = UInt8(hexString, radix: 16),
-                               let scalar = Unicode.Scalar(value) {
+                            if let value = UInt8(hexString, radix: 16) {
+                                let scalar = Unicode.Scalar(value)
                                 result.append(Character(scalar))
                                 i = text.index(after: secondIndex)
                                 continue

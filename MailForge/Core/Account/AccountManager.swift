@@ -5,7 +5,7 @@ import SwiftData
 
 /// Manages email accounts - creation, authentication, switching, deletion
 @Observable
-final class AccountManager {
+final class AccountManager: @unchecked Sendable {
 
     // MARK: - Properties
 
@@ -258,15 +258,12 @@ final class AccountManager {
 
         for account in accounts {
             for folder in account.folders {
-                let descriptor = FetchDescriptor<Message>(
-                    predicate: #Predicate { message in
-                        message.folder == folder && !message.isRead
-                    },
-                    sortBy: [SortDescriptor(\.date, order: .reverse)]
-                )
-
-                let messages = try modelContext.fetch(descriptor)
-                allMessages.append(contentsOf: messages)
+                // Fetch all messages for this folder manually
+                let allFolderMessages = try modelContext.fetch(FetchDescriptor<Message>())
+                let unreadMessages = allFolderMessages.filter { message in
+                    message.folder == folder && !message.isRead
+                }
+                allMessages.append(contentsOf: unreadMessages)
             }
         }
 
@@ -285,14 +282,12 @@ final class AccountManager {
 
         for account in accounts {
             for folder in account.folders {
-                let descriptor = FetchDescriptor<Message>(
-                    predicate: #Predicate { message in
-                        message.folder == folder && !message.isRead
-                    }
-                )
-
-                let count = try modelContext.fetchCount(descriptor)
-                totalCount += count
+                // Fetch all messages and filter manually
+                let allMessages = try modelContext.fetch(FetchDescriptor<Message>())
+                let unreadCount = allMessages.filter { message in
+                    message.folder == folder && !message.isRead
+                }.count
+                totalCount += unreadCount
             }
         }
 

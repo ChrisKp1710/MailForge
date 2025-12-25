@@ -26,11 +26,7 @@ struct AccountSetupView: View {
     @State private var showError: Bool = false
     @State private var errorMessage: String = ""
 
-    // MARK: - Account Manager
-
-    private var accountManager: AccountManager {
-        AccountManager(modelContext: modelContext)
-    }
+    // MARK: - Account Manager (removed - created locally to avoid Sendable issues)
 
     // MARK: - Body
 
@@ -282,11 +278,15 @@ struct AccountSetupView: View {
 
     // MARK: - Actions
 
+    @MainActor
     private func testConnection() {
         isTestingConnection = true
         testError = nil
 
         Task {
+            // Create account manager locally to avoid Sendable issues
+            let accountManager = AccountManager(modelContext: modelContext)
+
             do {
                 // Create temporary account for testing
                 let tempAccount = Account(
@@ -329,10 +329,14 @@ struct AccountSetupView: View {
         }
     }
 
+    @MainActor
     private func saveAccount() {
         isSaving = true
 
         Task {
+            // Create account manager locally to avoid Sendable issues
+            let accountManager = AccountManager(modelContext: modelContext)
+
             do {
                 _ = try await accountManager.addAccount(
                     email: email,
