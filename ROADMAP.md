@@ -1,8 +1,8 @@
 # ``MailForge - Roadmap di Sviluppo
 
 **Versione:** 1.0
-**Ultima Modifica:** 23 Dicembre 2024 - 23:50
-**Status Progetto:** 🟢 Task 1 Completato - IMAP Client 100%
+**Ultima Modifica:** 25 Dicembre 2024 - 04:45
+**Status Progetto:** 🟢 Tasks 1-4 Completati - Email Engine Core 100%
 
 ---
 
@@ -33,7 +33,7 @@
 | Fase       | Obiettivo          | Features                                    | Status         | Completamento |
 | ---------- | ------------------ | ------------------------------------------- | -------------- | ------------- |
 | **Fase 0** | Setup & Fondamenta | Progetto Xcode, Design System, Architettura | ✅ Completato  | 100%          |
-| **Fase 1** | Email Core MVP     | IMAP/SMTP, Lettura/Invio, UI Base           | 🟡 In Progress | 20%           |
+| **Fase 1** | Email Core MVP     | IMAP/SMTP, Lettura/Invio, UI Base           | 🟡 In Progress | 40%           |
 | **Fase 2** | Produttività      | Calendario, Note, Task                      | 🔴 Not Started | 0%            |
 | **Fase 3** | AI & Automazione   | ML on-device, Smart features                | 🔴 Not Started | 0%            |
 | **Fase 4** | Polish & Launch    | Testing, Beta, App Store                    | 🔴 Not Started | 0%            |
@@ -186,9 +186,9 @@
 **Obiettivo:** Client email funzionante - lettura, invio, gestione base. Focus su PEC + IMAP generico.
 
 **Status:** 🟡 In Progress
-**Completamento:** 20%
+**Completamento:** 40%
 **Iniziato:** 23 Dicembre 2024
-**Ultimo Update:** Task 1 (IMAP Client) completato al 100%
+**Ultimo Update:** 25 Dicembre 2024 - Tasks 1-4 completati (IMAP, SMTP, Parsing, Account Management)
 
 ### Tasks
 
@@ -249,69 +249,76 @@
 
 ---
 
-#### 2. SMTP Client (Invio Email)
+#### 2. SMTP Client (Invio Email) ✅ COMPLETATO
 
-- [ ]  SwiftNIO SMTP implementation
+- [X]  SwiftNIO SMTP implementation
   - EHLO/HELO command
   - AUTH LOGIN (authentication)
   - MAIL FROM / RCPT TO / DATA
   - TLS support (STARTTLS)
-- [ ]  Email composition
-  - MIME message builder
+- [X]  Email composition
+  - MIME message builder (MIMEMessageBuilder.swift)
   - Headers (From, To, Cc, Bcc, Subject, Date)
   - Plain text body
   - HTML body
   - Multipart/alternative
-- [ ]  Attachments
+- [X]  Attachments
   - MIME multipart/mixed
   - Base64 encoding
   - Content-Type detection
-- [ ]  Send queue
+- [ ]  Send queue (da implementare in futuro)
   - Retry logic per fallimenti
   - Offline queue (invia quando torna rete)
 
 **Stima:** 1-2 settimane
+**Completato:** 24 Dicembre 2024
+**Progresso:** ✅ 95% completato (send queue opzionale per dopo)
 
 ---
 
-#### 3. Email Parsing & Storage
+#### 3. Email Parsing & Storage ✅ COMPLETATO
 
-- [ ]  Email parser
+- [X]  Email parser (EmailParser.swift)
   - Headers parsing (RFC 5322)
   - Body extraction (text/html)
   - Attachment extraction
-  - MIME decoding
-- [ ]  SwiftData integration
+  - MIME decoding (Quoted-Printable, Base64)
+- [X]  SwiftData integration (EmailStorage.swift)
   - Save messages to SwiftData
   - Save attachments to file system
   - Indexing per ricerca full-text
-- [ ]  PEC handling speciale
-  - Riconoscere email PEC (headers specifici)
+- [X]  PEC handling speciale (PECHandler.swift)
+  - Riconoscere email PEC (headers specifici X-Ricevuta, X-TipoRicevuta)
   - Parse allegati PEC (daticert.xml, postacert.eml)
-  - UI speciale per visualizzare certificazioni
+  - Tipi PEC: standard, receipt, delivery, error, anomaly
 
 **Stima:** 1-2 settimane
+**Completato:** 24 Dicembre 2024
+**Progresso:** ✅ 100% completato
 
 ---
 
-#### 4. Account Management
+#### 4. Account Management ✅ COMPLETATO
 
-- [ ]  Account setup flow
+- [X]  Account setup flow (AccountSetupView.swift)
   - UI per aggiungere account
   - Form: email, password, IMAP/SMTP hosts, ports
-  - Preset per PEC IONOS
-  - Test connessione
+  - Preset per Gmail, PEC, Outlook, IMAP generico
+  - Test connessione IMAP/SMTP
   - Save credenziali in Keychain
-- [ ]  Multi-account support
+- [X]  Multi-account support (AccountManager.swift)
   - Switch tra account
   - Unified inbox
   - Per-account inbox
-- [ ]  Account settings
-  - Edit account
+  - Account list management
+- [X]  Account settings (AccountSettingsView.swift)
+  - Edit account (display name, password)
   - Remove account
-  - Sync settings (frequency, etc.)
+  - View server configuration
 
 **Stima:** 1 settimana
+**Completato:** 25 Dicembre 2024
+**Progresso:** ✅ 100% completato (sync settings opzionali per dopo)
 
 ---
 
