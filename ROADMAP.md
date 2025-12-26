@@ -1,8 +1,8 @@
 # ``MailForge - Roadmap di Sviluppo
 
 **Versione:** 1.0
-**Ultima Modifica:** 26 Dicembre 2024 - 15:30
-**Status Progetto:** 🟢 Tasks 1-5 Completati & Testati - IMAP Production-Ready con Gmail ✅
+**Ultima Modifica:** 26 Dicembre 2024 - 23:15
+**Status Progetto:** 🟢 Tasks 1-5 Completati & OAuth2 Funzionante - Gmail OAuth2 Production-Ready ✅
 
 ---
 
@@ -33,12 +33,14 @@
 | Fase       | Obiettivo          | Features                                    | Status         | Completamento |
 | ---------- | ------------------ | ------------------------------------------- | -------------- | ------------- |
 | **Fase 0** | Setup & Fondamenta | Progetto Xcode, Design System, Architettura | ✅ Completato  | 100%          |
-| **Fase 1** | Email Core MVP     | IMAP/SMTP, Lettura/Invio, UI Base           | 🟡 In Progress | 50%           |
+| **Fase 1** | Email Core MVP     | IMAP/SMTP, Lettura/Invio, UI Base, OAuth2   | 🟡 In Progress | 60%           |
 | **Fase 2** | Produttività      | Calendario, Note, Task                      | 🔴 Not Started | 0%            |
 | **Fase 3** | AI & Automazione   | ML on-device, Smart features                | 🔴 Not Started | 0%            |
 | **Fase 4** | Polish & Launch    | Testing, Beta, App Store                    | 🔴 Not Started | 0%            |
 
-**Progress Totale: 35%** (Fase 0: 100% + Fase 1: 50% = 1.5/5 fasi)
+**Progress Totale: 40%** (Fase 0: 100% + Fase 1: 60% = 1.6/5 fasi)
+
+**Ultimo Aggiornamento:** 26 Dicembre 2024 - OAuth2 completato! 🎉
 
 ---
 
@@ -310,7 +312,7 @@
 
 ---
 
-#### 4. Account Management ✅ COMPLETATO (Base) → 🟡 IN PROGRESS (OAuth2)
+#### 4. Account Management ✅ COMPLETATO (Base + OAuth2)
 
 - [X]  Account setup flow base (AccountSetupView.swift)
   - UI per aggiungere account
@@ -318,27 +320,30 @@
   - Preset per Gmail, PEC, Outlook, IMAP generico
   - Test connessione IMAP/SMTP
   - Save credenziali in Keychain
-- [ ]  **OAuth2 Integration** (🆕 PRIORITÀ ALTA)
-  - [ ]  OAuth2Manager.swift - gestione flow OAuth2
-  - [ ]  Google OAuth2 (Sign in with Google)
-    - Client ID/Secret configuration
-    - Authorization flow con WebKit
+- [X]  **OAuth2 Integration** ✅ COMPLETATO
+  - [X]  OAuth2Manager.swift - gestione flow OAuth2
+  - [X]  Google OAuth2 (Sign in with Google)
+    - Client ID/Secret da GoogleService-Info.plist (sicuro, non committato)
+    - Authorization flow con ASWebAuthenticationSession
     - Token exchange (auth code → access + refresh token)
     - Token refresh automatico
-  - [ ]  Microsoft OAuth2 (Sign in with Outlook)
+    - Threading issues risolti con @unchecked Sendable
+  - [ ]  Microsoft OAuth2 (Sign in with Outlook) - TODO futuro
     - Microsoft Identity Platform integration
     - Similar flow a Google
-  - [ ]  Apple OAuth2 (Sign in with Apple ID) - opzionale
-  - [ ]  IMAPClient OAuth2 support
-    - Nuovo metodo: `authenticateOAuth2(token:)`
-    - AUTHENTICATE XOAUTH2 command
-  - [ ]  Account model update
+  - [ ]  Apple OAuth2 (Sign in with Apple ID) - TODO futuro
+  - [X]  IMAPClient OAuth2 support
+    - Nuovo metodo: `authenticateOAuth2(accessToken:)`
+    - AUTHENTICATE XOAUTH2 SASL command
+  - [X]  Account model update
     - Campo `authType` (password vs oauth2)
-    - Salvataggio tokens in Keychain
-    - Token refresh logic
-  - [ ]  UI modernizzata Account Setup
-    - Bottoni "Sign in with Google/Outlook/Apple"
+    - Campo `oauthProvider` e `oauthTokenExpiration`
+    - Salvataggio tokens in Keychain (access + refresh)
+    - Token refresh logic implementato
+  - [X]  UI modernizzata Account Setup
+    - Bottoni "Sign in with Google/Microsoft"
     - Fallback a configurazione manuale per PEC
+    - OAuth2 flow end-to-end funzionante con Gmail ✅
 - [X]  Multi-account support (AccountManager.swift)
   - Switch tra account
   - Unified inbox
@@ -351,8 +356,10 @@
 
 **Stima:** 1 settimana (base) + 1 settimana (OAuth2)
 **Completato Base:** 25 Dicembre 2024
-**In Progress OAuth2:** 26 Dicembre 2024
-**Progresso:** 🟡 50% completato (base done, OAuth2 in progress)
+**Completato OAuth2:** 26 Dicembre 2024 ✅
+**Progresso:** ✅ 100% completato (base + OAuth2 done!)
+
+**Note:** OAuth2 flow funzionante end-to-end con Gmail. Prossimo step: sincronizzazione automatica cartelle IMAP dopo login OAuth2.
 
 ---
 
