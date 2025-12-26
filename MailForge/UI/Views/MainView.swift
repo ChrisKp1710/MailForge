@@ -48,20 +48,25 @@ struct MainView: View {
             if let message = selectedMessage {
                 MessageDetailView(message: message)
             } else {
-                VStack(spacing: Spacing.lg) {
+                VStack(spacing: 20) {
                     Image(systemName: "envelope.open")
                         .font(.system(size: 64))
-                        .foregroundColor(.textSecondary)
+                        .foregroundStyle(.tertiary)
+                        .symbolRenderingMode(.hierarchical)
 
-                    Text("Nessun messaggio selezionato")
-                        .font(.headlineLarge)
-                        .foregroundColor(.textPrimary)
+                    VStack(spacing: 8) {
+                        Text("Nessun messaggio selezionato")
+                            .font(.title2.weight(.semibold))
+                            .foregroundStyle(.primary)
 
-                    Text("Seleziona un messaggio dalla lista per visualizzarlo")
-                        .font(.bodyMedium)
-                        .foregroundColor(.textSecondary)
+                        Text("Seleziona un messaggio dalla lista\nper visualizzarlo")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Material.regular)
             }
         }
         .sheet(isPresented: $showAccountSetup) {

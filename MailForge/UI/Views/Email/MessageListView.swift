@@ -3,7 +3,7 @@ import SwiftData
 
 // MARK: - Message List View
 
-/// Message list view with search and filters
+/// Modern message list with search and filters
 struct MessageListView: View {
 
     // MARK: - Environment
@@ -67,7 +67,7 @@ struct MessageListView: View {
                 messageList
             }
         }
-        .background(Color.backgroundPrimary)
+        .background(Material.regular)
     }
 
     // MARK: - Header
@@ -75,14 +75,14 @@ struct MessageListView: View {
     private var header: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(folder?.displayName ?? "Nessuna cartella")
-                    .font(.headlineSmall)
-                    .foregroundColor(.textPrimary)
+                Text(folder?.name ?? "Nessuna cartella")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
 
                 if let folder = folder {
                     Text("\(messages.count) messaggi")
                         .font(.caption)
-                        .foregroundColor(.textSecondary)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -90,127 +90,126 @@ struct MessageListView: View {
 
             if isLoading {
                 ProgressView()
-                    .scaleEffect(0.7)
+                    .controlSize(.small)
             }
         }
-        .padding(Spacing.md)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 
     // MARK: - Toolbar
 
     private var toolbar: some View {
-        HStack(spacing: Spacing.md) {
+        HStack(spacing: 12) {
             // Search
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(.textSecondary)
-                    .font(.bodySmall)
+                    .foregroundStyle(.secondary)
+                    .font(.body)
 
                 TextField("Cerca messaggi...", text: $searchText)
                     .textFieldStyle(.plain)
-                    .font(.bodySmall)
+                    .font(.body)
 
                 if !searchText.isEmpty {
-                    Button {
-                        searchText = ""
-                    } label: {
+                    Button(action: { searchText = "" }) {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.textSecondary)
+                            .foregroundStyle(.tertiary)
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, Spacing.xs)
-            .background(Color.backgroundSecondary)
-            .cornerRadius(CornerRadius.sm)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
 
             // Filters
-            Button {
-                showUnreadOnly.toggle()
-            } label: {
+            Button(action: { showUnreadOnly.toggle() }) {
                 Image(systemName: showUnreadOnly ? "envelope.badge.fill" : "envelope.badge")
-                    .foregroundColor(showUnreadOnly ? .brandPrimary : .textSecondary)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(showUnreadOnly ? .blue : .secondary)
             }
             .buttonStyle(.plain)
             .help("Solo non letti")
 
             // Refresh
-            Button {
-                refreshMessages()
-            } label: {
+            Button(action: refreshMessages) {
                 Image(systemName: "arrow.clockwise")
-                    .foregroundColor(.textSecondary)
+                    .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
             .help("Aggiorna")
         }
-        .padding(.horizontal, Spacing.md)
-        .padding(.vertical, Spacing.sm)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
     }
 
     // MARK: - No Folder Selected
 
     private var noFolderSelected: some View {
-        VStack(spacing: Spacing.lg) {
+        VStack(spacing: 20) {
             Image(systemName: "folder")
-                .font(.system(size: 64))
-                .foregroundColor(.textSecondary)
+                .font(.system(size: 56))
+                .foregroundStyle(.tertiary)
+                .symbolRenderingMode(.hierarchical)
 
-            Text("Seleziona una cartella")
-                .font(.headlineLarge)
-                .foregroundColor(.textPrimary)
+            VStack(spacing: 8) {
+                Text("Seleziona una cartella")
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(.primary)
 
-            Text("Scegli una cartella dalla sidebar per visualizzare i messaggi")
-                .font(.bodyMedium)
-                .foregroundColor(.textSecondary)
-                .multilineTextAlignment(.center)
+                Text("Scegli una cartella dalla sidebar\nper visualizzare i messaggi")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
         }
-        .padding(Spacing.xl)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(32)
     }
 
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: Spacing.lg) {
+        VStack(spacing: 20) {
             Image(systemName: searchText.isEmpty ? "tray" : "magnifyingglass")
-                .font(.system(size: 64))
-                .foregroundColor(.textSecondary)
+                .font(.system(size: 56))
+                .foregroundStyle(.tertiary)
+                .symbolRenderingMode(.hierarchical)
 
-            Text(searchText.isEmpty ? "Nessun messaggio" : "Nessun risultato")
-                .font(.headlineLarge)
-                .foregroundColor(.textPrimary)
+            VStack(spacing: 8) {
+                Text(searchText.isEmpty ? "Nessun messaggio" : "Nessun risultato")
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(.primary)
 
-            Text(searchText.isEmpty ?
-                "Questa cartella è vuota" :
-                "Nessun messaggio corrisponde alla ricerca '\(searchText)'"
-            )
-            .font(.bodyMedium)
-            .foregroundColor(.textSecondary)
-            .multilineTextAlignment(.center)
+                Text(searchText.isEmpty ?
+                    "Questa cartella è vuota" :
+                    "Nessun messaggio corrisponde a '\(searchText)'"
+                )
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            }
         }
-        .padding(Spacing.xl)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(32)
     }
 
     // MARK: - Message List
 
     private var messageList: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(messages) { message in
-                    MessageRow(
-                        message: message,
-                        isSelected: selectedMessage?.id == message.id
-                    )
-                    .onTapGesture {
-                        selectedMessage = message
-                        markAsReadIfNeeded(message)
-                    }
-
-                    Divider()
+        List(messages, selection: $selectedMessage) { message in
+            MessageRow(message: message)
+                .tag(message)
+                .listRowSeparator(.visible, edges: .bottom)
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                .onTapGesture {
+                    selectedMessage = message
+                    markAsReadIfNeeded(message)
                 }
-            }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
     }
 
     // MARK: - Actions
@@ -250,5 +249,5 @@ struct MessageListView: View {
         selectedMessage: .constant(nil)
     )
     .modelContainer(for: [Message.self, Folder.self, Account.self, Attachment.self])
-    .frame(width: 400)
+    .frame(width: 400, height: 600)
 }

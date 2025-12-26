@@ -17,7 +17,7 @@ struct MessageDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.lg) {
+            VStack(alignment: .leading, spacing: 20) {
                 // Header
                 messageHeader
 
@@ -43,83 +43,83 @@ struct MessageDetailView: View {
                     pecInfo
                 }
             }
-            .padding(Spacing.xl)
+            .padding(24)
         }
-        .background(Color.backgroundPrimary)
+        .background(Material.regular)
     }
 
     // MARK: - Message Header
 
     private var messageHeader: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
+        VStack(alignment: .leading, spacing: 12) {
             // Subject
             HStack {
                 Text(message.subject)
-                    .font(.headlineLarge)
-                    .foregroundColor(.textPrimary)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(.primary)
 
                 Spacer()
 
                 if message.isStarred {
                     Image(systemName: "star.fill")
-                        .foregroundColor(.yellow)
+                        .foregroundStyle(.yellow)
                 }
             }
 
             // From
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: 6) {
                 Text("Da:")
-                    .font(.labelMedium)
-                    .foregroundColor(.textSecondary)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
 
                 Text(message.displayFrom)
-                    .font(.bodyMedium)
-                    .foregroundColor(.textPrimary)
+                    .font(.body)
+                    .foregroundStyle(.primary)
             }
 
             // To
             if !message.to.isEmpty {
-                HStack(spacing: Spacing.xs) {
+                HStack(spacing: 6) {
                     Text("A:")
-                        .font(.labelMedium)
-                        .foregroundColor(.textSecondary)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
 
                     Text(message.displayTo)
-                        .font(.bodyMedium)
-                        .foregroundColor(.textPrimary)
+                        .font(.body)
+                        .foregroundStyle(.primary)
                 }
             }
 
             // CC
             if !message.cc.isEmpty {
-                HStack(spacing: Spacing.xs) {
+                HStack(spacing: 6) {
                     Text("CC:")
-                        .font(.labelMedium)
-                        .foregroundColor(.textSecondary)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
 
                     Text(message.cc.joined(separator: ", "))
-                        .font(.bodyMedium)
-                        .foregroundColor(.textPrimary)
+                        .font(.body)
+                        .foregroundStyle(.primary)
                 }
             }
 
             // Date
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: 6) {
                 Text("Data:")
-                    .font(.labelMedium)
-                    .foregroundColor(.textSecondary)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
 
                 Text(message.date, style: .date)
-                    .font(.bodyMedium)
-                    .foregroundColor(.textPrimary)
+                    .font(.body)
+                    .foregroundStyle(.primary)
 
                 Text("alle")
-                    .font(.bodyMedium)
-                    .foregroundColor(.textSecondary)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
 
                 Text(message.date, style: .time)
-                    .font(.bodyMedium)
-                    .foregroundColor(.textPrimary)
+                    .font(.body)
+                    .foregroundStyle(.primary)
             }
         }
     }

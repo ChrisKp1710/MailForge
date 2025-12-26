@@ -1,79 +1,64 @@
 import SwiftUI
 import AppKit
 
-/// MailForge Design System - Color Palette
-/// Semantic colors that adapt to Light/Dark mode automatically
+/// MailForge Design System - Modern macOS Color Palette
+/// Professional colors with vibrant materials that adapt to Light/Dark mode
 extension Color {
 
     // MARK: - Brand Colors
 
-    /// Primary brand color - Used for main actions and highlights
-    static let brandPrimary = Color("BrandPrimary", bundle: .main)
-        .fallback(light: Color(hex: "#007AFF"), dark: Color(hex: "#0A84FF"))
+    /// Primary brand color - macOS Blue
+    static let brandPrimary = Color(light: Color(hex: "#007AFF"), dark: Color(hex: "#0A84FF"))
 
-    /// Secondary brand color - Used for secondary actions
-    static let brandSecondary = Color("BrandSecondary", bundle: .main)
-        .fallback(light: Color(hex: "#5856D6"), dark: Color(hex: "#5E5CE6"))
+    /// Secondary brand color - Purple
+    static let brandSecondary = Color(light: Color(hex: "#5856D6"), dark: Color(hex: "#5E5CE6"))
 
-    /// Accent color - Used for important UI elements
-    static let brandAccent = Color("BrandAccent", bundle: .main)
-        .fallback(light: Color(hex: "#FF9500"), dark: Color(hex: "#FF9F0A"))
+    /// Accent color - Orange
+    static let brandAccent = Color(light: Color(hex: "#FF9500"), dark: Color(hex: "#FF9F0A"))
 
-    // MARK: - Background Colors
+    // MARK: - Background Colors (Use Materials instead for modern look)
 
-    /// Primary background - Main app background
-    static let backgroundPrimary = Color("BackgroundPrimary", bundle: .main)
-        .fallback(light: Color(hex: "#FFFFFF"), dark: Color(hex: "#1C1C1E"))
+    /// Primary background - Transparent for materials
+    static let backgroundPrimary = Color.clear
 
-    /// Secondary background - Cards, panels
-    static let backgroundSecondary = Color("BackgroundSecondary", bundle: .main)
-        .fallback(light: Color(hex: "#F2F2F7"), dark: Color(hex: "#2C2C2E"))
+    /// Secondary background - Subtle gray
+    static let backgroundSecondary = Color(light: Color(hex: "#F5F5F7"), dark: Color(hex: "#1E1E1E"))
 
-    /// Tertiary background - Hover states, subtle backgrounds
-    static let backgroundTertiary = Color("BackgroundTertiary", bundle: .main)
-        .fallback(light: Color(hex: "#E5E5EA"), dark: Color(hex: "#3A3A3C"))
+    /// Tertiary background - Hover states
+    static let backgroundTertiary = Color(light: Color(hex: "#E8E8ED"), dark: Color(hex: "#2A2A2A"))
 
     // MARK: - Text Colors
 
     /// Primary text - Main content
-    static let textPrimary = Color("TextPrimary", bundle: .main)
-        .fallback(light: Color(hex: "#000000"), dark: Color(hex: "#FFFFFF"))
+    static let textPrimary = Color.primary
 
     /// Secondary text - Supporting content
-    static let textSecondary = Color("TextSecondary", bundle: .main)
-        .fallback(light: Color(hex: "#3C3C43", alpha: 0.6), dark: Color(hex: "#EBEBF5", alpha: 0.6))
+    static let textSecondary = Color.secondary
 
     /// Tertiary text - Disabled, placeholder
-    static let textTertiary = Color("TextTertiary", bundle: .main)
-        .fallback(light: Color(hex: "#3C3C43", alpha: 0.3), dark: Color(hex: "#EBEBF5", alpha: 0.3))
+    static let textTertiary = Color(light: Color(hex: "#8E8E93"), dark: Color(hex: "#636366"))
 
     // MARK: - Border Colors
 
     /// Primary border - Dividers, separators
-    static let borderPrimary = Color("BorderPrimary", bundle: .main)
-        .fallback(light: Color(hex: "#3C3C43", alpha: 0.2), dark: Color(hex: "#545458"))
+    static let borderPrimary = Color(light: Color.black.opacity(0.1), dark: Color.white.opacity(0.1))
 
     /// Secondary border - Subtle borders
-    static let borderSecondary = Color("BorderSecondary", bundle: .main)
-        .fallback(light: Color(hex: "#3C3C43", alpha: 0.1), dark: Color(hex: "#38383A"))
+    static let borderSecondary = Color(light: Color.black.opacity(0.05), dark: Color.white.opacity(0.05))
 
     // MARK: - Semantic Colors
 
     /// Success - Positive actions, confirmations
-    static let semanticSuccess = Color("SemanticSuccess", bundle: .main)
-        .fallback(light: Color(hex: "#34C759"), dark: Color(hex: "#32D74B"))
+    static let semanticSuccess = Color(light: Color(hex: "#34C759"), dark: Color(hex: "#30D158"))
 
     /// Warning - Caution, important notices
-    static let semanticWarning = Color("SemanticWarning", bundle: .main)
-        .fallback(light: Color(hex: "#FF9500"), dark: Color(hex: "#FF9F0A"))
+    static let semanticWarning = Color(light: Color(hex: "#FF9500"), dark: Color(hex: "#FF9F0A"))
 
     /// Error - Errors, destructive actions
-    static let semanticError = Color("SemanticError", bundle: .main)
-        .fallback(light: Color(hex: "#FF3B30"), dark: Color(hex: "#FF453A"))
+    static let semanticError = Color(light: Color(hex: "#FF3B30"), dark: Color(hex: "#FF453A"))
 
     /// Info - Informational messages
-    static let semanticInfo = Color("SemanticInfo", bundle: .main)
-        .fallback(light: Color(hex: "#007AFF"), dark: Color(hex: "#0A84FF"))
+    static let semanticInfo = Color.brandPrimary
 
     // MARK: - Email Specific Colors
 
@@ -81,8 +66,7 @@ extension Color {
     static let emailUnread = Color.brandPrimary
 
     /// Starred - Highlighted/favorited emails
-    static let emailStarred = Color("EmailStarred", bundle: .main)
-        .fallback(light: Color(hex: "#FF9500"), dark: Color(hex: "#FF9F0A"))
+    static let emailStarred = Color(light: Color(hex: "#FF9500"), dark: Color(hex: "#FF9F0A"))
 
     /// Read email - Dimmed text for read emails
     static let emailRead = Color.textSecondary
@@ -115,13 +99,6 @@ extension Color {
             blue: Double(b) / 255,
             opacity: alpha
         )
-    }
-
-    /// Fallback for when asset catalog color is not available
-    func fallback(light: Color, dark: Color) -> Color {
-        // In production, this would check if asset exists
-        // For now, return light/dark based on color scheme
-        return Color(light: light, dark: dark)
     }
 
     /// Create color that adapts to color scheme (macOS)

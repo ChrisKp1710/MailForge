@@ -2,95 +2,83 @@ import SwiftUI
 
 // MARK: - Message Row
 
-/// Message row component for list view
+/// Modern message row component for list
 struct MessageRow: View {
 
     // MARK: - Properties
 
     let message: Message
-    let isSelected: Bool
 
     // MARK: - Body
 
     var body: some View {
-        HStack(spacing: Spacing.sm) {
+        HStack(alignment: .top, spacing: 12) {
             // Unread indicator
             Circle()
-                .fill(message.isRead ? Color.clear : Color.brandPrimary)
+                .fill(message.isRead ? .clear : .blue)
                 .frame(width: 8, height: 8)
+                .padding(.top, 6)
 
             // Content
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                // Header: From & Date
-                HStack {
+            VStack(alignment: .leading, spacing: 6) {
+                // Header: From + Date + Badges
+                HStack(alignment: .center, spacing: 8) {
                     Text(message.displayFrom)
-                        .font(message.isRead ? .bodyMedium : .bodyMediumBold)
-                        .foregroundColor(.textPrimary)
+                        .font(.body.weight(message.isRead ? .regular : .semibold))
+                        .foregroundStyle(.primary)
                         .lineLimit(1)
 
                     Spacer()
 
-                    HStack(spacing: Spacing.xs) {
-                        // PEC indicator
+                    // Badges
+                    HStack(spacing: 6) {
                         if message.isPEC {
                             Image(systemName: "checkmark.seal.fill")
                                 .font(.caption)
-                                .foregroundColor(.semanticSuccess)
+                                .foregroundStyle(.green)
+                                .symbolRenderingMode(.hierarchical)
                                 .help("Email PEC")
                         }
 
-                        // Attachment indicator
                         if message.hasAttachments {
                             Image(systemName: "paperclip")
                                 .font(.caption)
-                                .foregroundColor(.textSecondary)
+                                .foregroundStyle(.secondary)
                         }
 
-                        // Star
                         if message.isStarred {
                             Image(systemName: "star.fill")
                                 .font(.caption)
-                                .foregroundColor(.yellow)
+                                .foregroundStyle(.yellow)
                         }
-
-                        // Date
-                        Text(message.formattedDate)
-                            .font(.caption)
-                            .foregroundColor(.textSecondary)
                     }
+
+                    Text(message.formattedDate)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
                 }
 
                 // Subject
                 Text(message.subject)
-                    .font(message.isRead ? .bodySmall : .bodySmallBold)
-                    .foregroundColor(.textPrimary)
+                    .font(.body.weight(message.isRead ? .regular : .medium))
+                    .foregroundStyle(message.isRead ? .secondary : .primary)
                     .lineLimit(1)
 
                 // Preview
                 if !message.preview.isEmpty {
                     Text(message.preview)
                         .font(.caption)
-                        .foregroundColor(.textSecondary)
+                        .foregroundStyle(.tertiary)
                         .lineLimit(2)
                 }
             }
         }
-        .padding(.horizontal, Spacing.md)
-        .padding(.vertical, Spacing.sm)
-        .background(
-            isSelected ?
-            Color.brandPrimary.opacity(0.1) :
-            (message.isRead ? Color.clear : Color.backgroundSecondary)
-        )
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(message.isRead ? .clear : Color.blue.opacity(0.03))
         .contentShape(Rectangle())
     }
-}
-
-// MARK: - Font Extensions
-
-private extension Font {
-    static let bodyMediumBold = Font.system(size: 13, weight: .semibold)
-    static let bodySmallBold = Font.system(size: 12, weight: .semibold)
 }
 
 // MARK: - Preview
@@ -101,16 +89,17 @@ private extension Font {
             message: Message(
                 messageID: "1",
                 uid: 1,
-                subject: "Important Update",
-                from: "sender@example.com",
+                subject: "Important Meeting Tomorrow",
+                from: "john.doe@example.com",
                 fromName: "John Doe",
                 to: ["me@example.com"],
+                cc: [],
                 date: Date(),
-                preview: "This is a preview of the message content...",
+                preview: "Hi, just a reminder about our meeting tomorrow at 10 AM. Please bring the project documents.",
                 isRead: false,
-                hasAttachments: true
-            ),
-            isSelected: false
+                hasAttachments: true,
+                isPEC: false
+            )
         )
 
         Divider()
@@ -119,15 +108,36 @@ private extension Font {
             message: Message(
                 messageID: "2",
                 uid: 2,
-                subject: "Meeting Tomorrow",
-                from: "colleague@example.com",
+                subject: "PEC: Documento ufficiale",
+                from: "admin@pec.it",
+                fromName: "Amministrazione",
                 to: ["me@example.com"],
+                cc: [],
                 date: Date().addingTimeInterval(-86400),
-                preview: "Don't forget about our meeting tomorrow at 10 AM",
+                preview: "Questo è un messaggio certificato PEC con allegati importanti.",
                 isRead: true,
-                isStarred: true
-            ),
-            isSelected: true
+                hasAttachments: true,
+                isPEC: true
+            )
+        )
+
+        Divider()
+
+        MessageRow(
+            message: Message(
+                messageID: "3",
+                uid: 3,
+                subject: "Weekly Newsletter",
+                from: "newsletter@company.com",
+                fromName: "Company News",
+                to: ["me@example.com"],
+                cc: [],
+                date: Date().addingTimeInterval(-172800),
+                preview: "Check out this week's highlights and updates from the team.",
+                isRead: true,
+                isStarred: true,
+                hasAttachments: false
+            )
         )
     }
     .frame(width: 400)

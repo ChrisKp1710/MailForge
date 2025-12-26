@@ -3,7 +3,7 @@ import SwiftData
 
 // MARK: - Sidebar View
 
-/// Sidebar with accounts and folders tree
+/// Modern macOS-style sidebar with native List
 struct SidebarView: View {
 
     // MARK: - Properties
@@ -15,195 +15,169 @@ struct SidebarView: View {
 
     let onAddAccount: () -> Void
 
-    // MARK: - State
-
-    @State private var expandedAccounts: Set<Account.ID> = []
-
     // MARK: - Body
 
     var body: some View {
         VStack(spacing: 0) {
             // Header
-            header
+            sidebarHeader
 
             Divider()
 
-            // Accounts & Folders
+            // Content
             if accounts.isEmpty {
                 emptyState
             } else {
                 accountsList
             }
         }
-        .background(Color.backgroundPrimary)
+        .background(Material.thin)
     }
 
     // MARK: - Header
 
-    private var header: some View {
+    private var sidebarHeader: some View {
         HStack {
             Text("Cartelle")
-                .font(.headlineSmall)
-                .foregroundColor(.textPrimary)
+                .font(.headline)
+                .foregroundStyle(.primary)
 
             Spacer()
 
-            Button {
-                onAddAccount()
-            } label: {
+            Button(action: onAddAccount) {
                 Image(systemName: "plus.circle.fill")
                     .font(.title3)
-                    .foregroundColor(.brandPrimary)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.blue)
             }
             .buttonStyle(.plain)
             .help("Aggiungi account")
         }
-        .padding(Spacing.md)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: Spacing.lg) {
+        VStack(spacing: 20) {
             Image(systemName: "envelope.badge.shield.half.filled")
-                .font(.system(size: 48))
-                .foregroundColor(.textSecondary)
+                .font(.system(size: 56))
+                .foregroundStyle(.tertiary)
+                .symbolRenderingMode(.hierarchical)
 
-            Text("Nessun account")
-                .font(.headlineSmall)
-                .foregroundColor(.textPrimary)
+            VStack(spacing: 8) {
+                Text("Nessun account")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
 
-            Text("Aggiungi un account email per iniziare")
-                .font(.bodySmall)
-                .foregroundColor(.textSecondary)
-                .multilineTextAlignment(.center)
-
-            DSButton("Aggiungi Account", icon: "plus", style: .primary) {
-                onAddAccount()
+                Text("Aggiungi un account email\nper iniziare")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
+
+            Button(action: onAddAccount) {
+                Label("Aggiungi Account", systemImage: "plus")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .padding(.horizontal, 32)
         }
-        .padding(Spacing.xl)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(32)
     }
 
     // MARK: - Accounts List
 
     private var accountsList: some View {
-        ScrollView {
-            LazyVStack(spacing: Spacing.xs, pinnedViews: [.sectionHeaders]) {
-                ForEach(accounts) { account in
-                    accountSection(account)
-                }
-            }
-            .padding(.vertical, Spacing.sm)
-        }
-    }
-
-    // MARK: - Account Section
-
-    private func accountSection(_ account: Account) -> some View {
-        VStack(spacing: Spacing.xxs) {
-            // Account header
-            Button {
-                withAnimation {
-                    if expandedAccounts.contains(account.id) {
-                        expandedAccounts.remove(account.id)
-                    } else {
-                        expandedAccounts.insert(account.id)
-                        selectedAccount = account
-                    }
-                }
-            } label: {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: account.type.icon)
-                        .foregroundColor(.brandPrimary)
-                        .frame(width: 20)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(account.name)
-                            .font(.bodyMedium)
-                            .foregroundColor(.textPrimary)
-
-                        Text(account.emailAddress)
-                            .font(.caption)
-                            .foregroundColor(.textSecondary)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: expandedAccounts.contains(account.id) ? "chevron.down" : "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.textSecondary)
-                }
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.sm)
-                .background(
-                    selectedAccount?.id == account.id ?
-                    Color.brandPrimary.opacity(0.1) : Color.clear
-                )
-                .cornerRadius(CornerRadius.sm)
-            }
-            .buttonStyle(.plain)
-
-            // Folders (when expanded)
-            if expandedAccounts.contains(account.id) {
-                VStack(spacing: 2) {
+        List(selection: $selectedFolder) {
+            ForEach(accounts) { account in
+                Section {
                     ForEach(account.folders.sorted(by: { $0.name < $1.name })) { folder in
-                        folderRow(folder)
+                        FolderRow(folder: folder)
+                            .tag(folder)
                     }
-                }
-                .padding(.leading, Spacing.lg)
-            }
-        }
-        .padding(.horizontal, Spacing.sm)
-        .onAppear {
-            // Auto-expand first account
-            if expandedAccounts.isEmpty, let firstAccount = accounts.first {
-                expandedAccounts.insert(firstAccount.id)
-            }
-        }
-    }
-
-    // MARK: - Folder Row
-
-    private func folderRow(_ folder: Folder) -> some View {
-        Button {
-            selectedFolder = folder
-        } label: {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: folderIcon(for: folder))
-                    .foregroundColor(folderColor(for: folder))
-                    .frame(width: 16)
-
-                Text(folder.name)
-                    .font(.bodySmall)
-                    .foregroundColor(.textPrimary)
-
-                Spacer()
-
-                if folder.unreadCount > 0 {
-                    Text("\(folder.unreadCount)")
-                        .font(.caption)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.brandPrimary)
-                        .cornerRadius(8)
+                } header: {
+                    AccountHeader(account: account, isSelected: selectedAccount?.id == account.id)
+                        .onTapGesture {
+                            withAnimation(.snappy(duration: 0.2)) {
+                                selectedAccount = account
+                                if selectedFolder == nil || selectedFolder?.account?.id != account.id {
+                                    selectedFolder = account.folders.first(where: { $0.name == "INBOX" })
+                                        ?? account.folders.first
+                                }
+                            }
+                        }
                 }
             }
-            .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, Spacing.xs)
-            .background(
-                selectedFolder?.id == folder.id ?
-                Color.brandPrimary.opacity(0.15) : Color.clear
-            )
-            .cornerRadius(CornerRadius.sm)
         }
-        .buttonStyle(.plain)
+        .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
+    }
+}
+
+// MARK: - Account Header
+
+private struct AccountHeader: View {
+    let account: Account
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: account.type.icon)
+                .foregroundStyle(.blue)
+                .symbolRenderingMode(.hierarchical)
+                .frame(width: 20)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(account.name)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(.primary)
+
+                Text(account.emailAddress)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Folder Row
+
+private struct FolderRow: View {
+    let folder: Folder
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: folderIcon)
+                .foregroundStyle(folderColor)
+                .symbolRenderingMode(.hierarchical)
+                .frame(width: 18)
+
+            Text(folder.name)
+                .font(.body)
+
+            Spacer()
+
+            if folder.unreadCount > 0 {
+                Text("\(folder.unreadCount)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(.blue, in: Capsule())
+            }
+        }
+        .contentShape(Rectangle())
     }
 
-    // MARK: - Helpers
-
-    private func folderIcon(for folder: Folder) -> String {
+    private var folderIcon: String {
         switch folder.name.uppercased() {
         case "INBOX": return "tray.fill"
         case "SENT": return "paperplane.fill"
@@ -215,15 +189,15 @@ struct SidebarView: View {
         }
     }
 
-    private func folderColor(for folder: Folder) -> Color {
+    private var folderColor: Color {
         switch folder.name.uppercased() {
-        case "INBOX": return .brandPrimary
+        case "INBOX": return .blue
         case "SENT": return .blue
         case "DRAFTS": return .orange
         case "TRASH", "DELETED": return .red
         case "SPAM", "JUNK": return .red
         case "ARCHIVE": return .gray
-        default: return .textSecondary
+        default: return .secondary
         }
     }
 }
@@ -237,5 +211,5 @@ struct SidebarView: View {
         selectedFolder: .constant(nil),
         onAddAccount: {}
     )
-    .frame(width: 250)
+    .frame(width: 250, height: 600)
 }
