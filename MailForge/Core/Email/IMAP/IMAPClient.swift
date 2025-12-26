@@ -215,10 +215,10 @@ final class IMAPClient {
         return caps
     }
 
-    /// Login to IMAP server
+    /// Login to IMAP server with username and password
     /// - Throws: IMAPError if authentication fails
     func login() async throws {
-        Logger.info("Authenticating with IMAP server...", category: logCategory)
+        Logger.info("Authenticating with IMAP server (LOGIN)...", category: logCategory)
 
         guard state == .notAuthenticated else {
             Logger.warning("Already authenticated", category: logCategory)
@@ -237,6 +237,36 @@ final class IMAPClient {
             Logger.info("Successfully authenticated", category: logCategory)
         } else {
             Logger.error("Authentication failed: \(result.errorMessage ?? "Unknown error")", category: logCategory)
+            throw IMAPError.authenticationFailed
+        }
+    }
+
+    /// Authenticate to IMAP server using OAuth2 token
+    /// - Parameter accessToken: OAuth2 access token
+    /// - Throws: IMAPError if authentication fails
+    func authenticateOAuth2(accessToken: String) async throws {
+        Logger.info("Authenticating with IMAP server (OAuth2)...", category: logCategory)
+
+        guard state == .notAuthenticated else {
+            Logger.warning("Already authenticated", category: logCategory)
+            return
+        }
+
+        // Build XOAUTH2 SASL string
+        // Format: user={user}\x01auth=Bearer {token}\x01\x01
+        let authString = "user=\(username)\u{0001}auth=Bearer \(accessToken)\u{0001}\u{0001}"
+        let authData = authString.data(using: .utf8)!
+        let base64Auth = authData.base64EncodedString()
+
+        // Send AUTHENTICATE XOAUTH2 command
+        let result = try await sendTaggedCommand("AUTHENTICATE XOAUTH2 \(base64Auth)")
+
+        // Check response
+        if result.isSuccess {
+            state = .authenticated
+            Logger.info("Successfully authenticated with OAuth2", category: logCategory)
+        } else {
+            Logger.error("OAuth2 authentication failed: \(result.errorMessage ?? "Unknown error")", category: logCategory)
             throw IMAPError.authenticationFailed
         }
     }

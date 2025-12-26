@@ -310,14 +310,35 @@
 
 ---
 
-#### 4. Account Management ✅ COMPLETATO
+#### 4. Account Management ✅ COMPLETATO (Base) → 🟡 IN PROGRESS (OAuth2)
 
-- [X]  Account setup flow (AccountSetupView.swift)
+- [X]  Account setup flow base (AccountSetupView.swift)
   - UI per aggiungere account
   - Form: email, password, IMAP/SMTP hosts, ports
   - Preset per Gmail, PEC, Outlook, IMAP generico
   - Test connessione IMAP/SMTP
   - Save credenziali in Keychain
+- [ ]  **OAuth2 Integration** (🆕 PRIORITÀ ALTA)
+  - [ ]  OAuth2Manager.swift - gestione flow OAuth2
+  - [ ]  Google OAuth2 (Sign in with Google)
+    - Client ID/Secret configuration
+    - Authorization flow con WebKit
+    - Token exchange (auth code → access + refresh token)
+    - Token refresh automatico
+  - [ ]  Microsoft OAuth2 (Sign in with Outlook)
+    - Microsoft Identity Platform integration
+    - Similar flow a Google
+  - [ ]  Apple OAuth2 (Sign in with Apple ID) - opzionale
+  - [ ]  IMAPClient OAuth2 support
+    - Nuovo metodo: `authenticateOAuth2(token:)`
+    - AUTHENTICATE XOAUTH2 command
+  - [ ]  Account model update
+    - Campo `authType` (password vs oauth2)
+    - Salvataggio tokens in Keychain
+    - Token refresh logic
+  - [ ]  UI modernizzata Account Setup
+    - Bottoni "Sign in with Google/Outlook/Apple"
+    - Fallback a configurazione manuale per PEC
 - [X]  Multi-account support (AccountManager.swift)
   - Switch tra account
   - Unified inbox
@@ -328,9 +349,85 @@
   - Remove account
   - View server configuration
 
-**Stima:** 1 settimana
-**Completato:** 25 Dicembre 2024
-**Progresso:** ✅ 100% completato (sync settings opzionali per dopo)
+**Stima:** 1 settimana (base) + 1 settimana (OAuth2)
+**Completato Base:** 25 Dicembre 2024
+**In Progress OAuth2:** 26 Dicembre 2024
+**Progresso:** 🟡 50% completato (base done, OAuth2 in progress)
+
+---
+
+##### 📱 OAuth2 Architecture & User Flow
+
+**Obiettivo:** Rendere l'aggiunta di account Gmail/Outlook/Apple **semplicissima** (3 click) invece di richiedere configurazione manuale complessa.
+
+**User Flow - Sign in with Google:**
+
+```
+1. User clicca "Sign in with Google"
+   ↓
+2. Si apre sheet con WebView
+   ↓
+3. Google login page (email + password normale)
+   ↓
+4. Google chiede: "Dare accesso a MailForge?"
+   ↓
+5. User clicca "Accetta"
+   ↓
+6. App riceve authorization code
+   ↓
+7. App scambia code per access_token + refresh_token
+   ↓
+8. Salva tokens in Keychain
+   ↓
+9. ✅ Account configurato automaticamente!
+```
+
+**Architettura Tecnica:**
+
+```
+┌─────────────────────────────────────────────┐
+│  AccountSetupView                           │
+│  ┌───────────────────────────────────────┐  │
+│  │ [🔵 Sign in with Google]              │  │
+│  │ [📧 Sign in with Outlook]             │  │
+│  │ [⚙️  Configurazione Manuale (PEC)]    │  │
+│  └───────────────────────────────────────┘  │
+└─────────────────────────────────────────────┘
+                    ↓
+         ┌──────────┴──────────┐
+         │                     │
+    [OAuth2]            [Manual Config]
+         │                     │
+         ↓                     ↓
+┌─────────────────┐   ┌──────────────────┐
+│ OAuth2Manager   │   │ IMAPClient       │
+│                 │   │                  │
+│ - authorize()   │   │ - login()        │
+│ - getToken()    │   │   (user/pass)    │
+│ - refreshToken()│   └──────────────────┘
+└─────────────────┘
+         │
+         ↓
+┌─────────────────────────────────────┐
+│ IMAPClient                          │
+│                                     │
+│ - authenticateOAuth2(token: String) │
+│   → AUTHENTICATE XOAUTH2 [token]    │
+│                                     │
+│ - login() [existing]                │
+│   → LOGIN "user" "pass"             │
+└─────────────────────────────────────┘
+```
+
+**Benefici per l'Utente:**
+
+| Metodo | Gmail | Outlook | PEC |
+|--------|-------|---------|-----|
+| **OAuth2** | ✅ 3 click | ✅ 3 click | ❌ N/A |
+| **Manuale** | ❌ Complesso | ❌ Complesso | ✅ Necessario |
+| **Password** | Normale | Normale | Normale |
+| **App Password** | ❌ No | ❌ No | ❌ No |
+| **Host/Port** | ✅ Auto | ✅ Auto | ⚙️ Manuale |
 
 ---
 

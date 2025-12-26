@@ -26,6 +26,10 @@ struct AccountSetupView: View {
     @State private var showError: Bool = false
     @State private var errorMessage: String = ""
 
+    // OAuth2 state
+    @State private var isAuthenticatingOAuth: Bool = false
+    @State private var showManualConfig: Bool = false
+
     // MARK: - Account Manager (removed - created locally to avoid Sendable issues)
 
     // MARK: - Body
@@ -40,22 +44,77 @@ struct AccountSetupView: View {
             // Content
             ScrollView {
                 VStack(spacing: Spacing.lg) {
-                    // Provider selection
-                    providerSection
+                    // OAuth2 Quick Sign In
+                    if !showManualConfig {
+                        oauth2Section
 
-                    Divider()
+                        // "OR" divider
+                        HStack {
+                            Rectangle()
+                                .fill(Color.borderPrimary)
+                                .frame(height: 1)
 
-                    // Account credentials
-                    credentialsSection
+                            Text("OPPURE")
+                                .font(.caption)
+                                .foregroundColor(.textSecondary)
+                                .padding(.horizontal, Spacing.sm)
 
-                    // Test connection
-                    if !email.isEmpty && !password.isEmpty {
-                        testConnectionSection
+                            Rectangle()
+                                .fill(Color.borderPrimary)
+                                .frame(height: 1)
+                        }
+                        .padding(.vertical, Spacing.md)
+
+                        // Manual config button
+                        DSButton(
+                            "Configurazione Manuale",
+                            icon: "gearshape",
+                            style: .ghost
+                        ) {
+                            withAnimation {
+                                showManualConfig = true
+                            }
+                        }
                     }
 
-                    // Notes
-                    if let notes = selectedPreset.notes {
-                        notesSection(notes)
+                    // Manual configuration (shown when requested)
+                    if showManualConfig {
+                        // Back button
+                        HStack {
+                            Button {
+                                withAnimation {
+                                    showManualConfig = false
+                                }
+                            } label: {
+                                HStack(spacing: Spacing.xs) {
+                                    Image(systemName: "chevron.left")
+                                    Text("Torna indietro")
+                                }
+                                .font(.bodyMedium)
+                                .foregroundColor(.brandPrimary)
+                            }
+                            .buttonStyle(.plain)
+
+                            Spacer()
+                        }
+
+                        // Provider selection
+                        providerSection
+
+                        Divider()
+
+                        // Account credentials
+                        credentialsSection
+
+                        // Test connection
+                        if !email.isEmpty && !password.isEmpty {
+                            testConnectionSection
+                        }
+
+                        // Notes
+                        if let notes = selectedPreset.notes {
+                            notesSection(notes)
+                        }
                     }
                 }
                 .padding(Spacing.xl)
@@ -95,6 +154,103 @@ struct AccountSetupView: View {
             .buttonStyle(.plain)
         }
         .padding(Spacing.lg)
+    }
+
+    // MARK: - OAuth2 Section
+
+    private var oauth2Section: some View {
+        VStack(alignment: .leading, spacing: Spacing.lg) {
+            // Title
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text("Accesso Rapido")
+                    .font(.headlineSmall)
+                    .foregroundColor(.textPrimary)
+
+                Text("Connetti il tuo account in 3 semplici click")
+                    .font(.bodySmall)
+                    .foregroundColor(.textSecondary)
+            }
+
+            // OAuth2 Buttons
+            VStack(spacing: Spacing.md) {
+                // Google Sign In Button
+                oauth2Button(
+                    provider: .google,
+                    title: "Continua con Google",
+                    icon: "g.circle.fill",
+                    backgroundColor: Color.white,
+                    foregroundColor: Color.black
+                )
+
+                // Microsoft Sign In Button
+                oauth2Button(
+                    provider: .microsoft,
+                    title: "Continua con Microsoft",
+                    icon: "m.square.fill",
+                    backgroundColor: Color(red: 0.0, green: 0.46, blue: 0.82),
+                    foregroundColor: Color.white
+                )
+            }
+
+            // Info box
+            HStack(alignment: .top, spacing: Spacing.sm) {
+                Image(systemName: "info.circle.fill")
+                    .foregroundColor(.semanticInfo)
+                    .font(.bodyMedium)
+
+                Text("Utilizziamo OAuth2 per garantire la massima sicurezza. Non memorizziamo mai la tua password.")
+                    .font(.caption)
+                    .foregroundColor(.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.semanticInfo.opacity(0.1))
+            .cornerRadius(CornerRadius.md)
+        }
+    }
+
+    private func oauth2Button(
+        provider: OAuth2Provider,
+        title: String,
+        icon: String,
+        backgroundColor: Color,
+        foregroundColor: Color
+    ) -> some View {
+        Button {
+            signInWithOAuth2(provider: provider)
+        } label: {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(foregroundColor)
+
+                Text(title)
+                    .font(.bodyMedium)
+                    .fontWeight(.medium)
+                    .foregroundColor(foregroundColor)
+
+                Spacer()
+
+                if isAuthenticatingOAuth {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .tint(foregroundColor)
+                }
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+            .frame(maxWidth: .infinity)
+            .background(backgroundColor)
+            .cornerRadius(CornerRadius.md)
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .stroke(Color.borderPrimary, lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+        }
+        .buttonStyle(.plain)
+        .disabled(isAuthenticatingOAuth)
     }
 
     // MARK: - Provider Section
@@ -277,6 +433,104 @@ struct AccountSetupView: View {
     }
 
     // MARK: - Actions
+
+    @MainActor
+    private func signInWithOAuth2(provider: OAuth2Provider) {
+        isAuthenticatingOAuth = true
+
+        Task { @MainActor in
+            do {
+                // Create OAuth2 manager
+                let oauth2Manager = OAuth2Manager(provider: provider)
+
+                // Start authorization flow
+                Logger.info("Starting OAuth2 authorization for \(provider.name)", category: .email)
+                let tokens = try await oauth2Manager.authorize()
+
+                // Get user email from Google UserInfo API
+                let userEmail = try await fetchUserEmail(accessToken: tokens.accessToken, provider: provider)
+
+                // Create account with OAuth2
+                Logger.info("Creating account for \(userEmail)", category: .email)
+
+                let account = Account(
+                    name: userEmail,
+                    emailAddress: userEmail,
+                    type: provider == .google ? .gmail : .outlook,
+                    authType: .oauth2,
+                    oauthProvider: provider.name,
+                    imapHost: provider.imapConfig.host,
+                    imapPort: provider.imapConfig.port,
+                    imapUseTLS: true,
+                    smtpHost: provider.smtpConfig.host,
+                    smtpPort: provider.smtpConfig.port,
+                    smtpUseTLS: true
+                )
+
+                // Set token expiration
+                account.oauthTokenExpiration = tokens.expirationDate
+
+                // Save tokens to keychain
+                try KeychainManager.shared.saveOAuth2AccessToken(tokens.accessToken, for: account.keychainIdentifier)
+                if let refreshToken = tokens.refreshToken {
+                    try KeychainManager.shared.saveOAuth2RefreshToken(refreshToken, for: account.keychainIdentifier)
+                }
+
+                // Save account to SwiftData (must be on MainActor)
+                modelContext.insert(account)
+                try modelContext.save()
+
+                Logger.info("Account created successfully with OAuth2", category: .email)
+
+                // Close the view
+                isAuthenticatingOAuth = false
+                dismiss()
+
+            } catch {
+                Logger.error("OAuth2 authentication failed: \(error)", category: .email)
+
+                isAuthenticatingOAuth = false
+                errorMessage = "Autenticazione fallita: \(error.localizedDescription)"
+                showError = true
+            }
+        }
+    }
+
+    /// Fetch user email from provider's UserInfo API
+    private func fetchUserEmail(accessToken: String, provider: OAuth2Provider) async throws -> String {
+        let userInfoURL: String
+        switch provider {
+        case .google:
+            userInfoURL = "https://www.googleapis.com/oauth2/v2/userinfo"
+        case .microsoft:
+            userInfoURL = "https://graph.microsoft.com/v1.0/me"
+        case .apple:
+            userInfoURL = "https://appleid.apple.com/auth/userinfo"
+        }
+
+        var request = URLRequest(url: URL(string: userInfoURL)!)
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        // Decode response
+        struct GoogleUserInfo: Codable {
+            let email: String
+        }
+
+        struct MicrosoftUserInfo: Codable {
+            let userPrincipalName: String
+        }
+
+        switch provider {
+        case .google, .apple:
+            let userInfo = try JSONDecoder().decode(GoogleUserInfo.self, from: data)
+            return userInfo.email
+        case .microsoft:
+            let userInfo = try JSONDecoder().decode(MicrosoftUserInfo.self, from: data)
+            return userInfo.userPrincipalName
+        }
+    }
 
     @MainActor
     private func testConnection() {

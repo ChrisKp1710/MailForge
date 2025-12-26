@@ -19,6 +19,15 @@ final class Account {
     /// Account type
     var type: AccountType
 
+    /// Authentication type (password vs OAuth2)
+    var authType: AuthenticationType
+
+    /// OAuth2 provider (if using OAuth2)
+    var oauthProvider: String?
+
+    /// OAuth2 token expiration date (if using OAuth2)
+    var oauthTokenExpiration: Date?
+
     /// IMAP configuration
     var imapHost: String
     var imapPort: Int
@@ -51,6 +60,8 @@ final class Account {
         name: String,
         emailAddress: String,
         type: AccountType,
+        authType: AuthenticationType = .password,
+        oauthProvider: String? = nil,
         imapHost: String,
         imapPort: Int = 993,
         imapUseTLS: Bool = true,
@@ -64,6 +75,9 @@ final class Account {
         self.name = name
         self.emailAddress = emailAddress
         self.type = type
+        self.authType = authType
+        self.oauthProvider = oauthProvider
+        self.oauthTokenExpiration = nil
         self.imapHost = imapHost
         self.imapPort = imapPort
         self.imapUseTLS = imapUseTLS
@@ -77,6 +91,37 @@ final class Account {
         self.folders = []
         self.createdAt = Date()
     }
+
+    // MARK: - Computed Properties
+
+    /// Check if OAuth2 token needs refresh
+    var needsTokenRefresh: Bool {
+        guard authType == .oauth2,
+              let expiration = oauthTokenExpiration else {
+            return false
+        }
+
+        // Refresh if token expires in less than 5 minutes
+        return Date().addingTimeInterval(300) >= expiration
+    }
+
+    /// Check if OAuth2 token is expired
+    var isTokenExpired: Bool {
+        guard authType == .oauth2,
+              let expiration = oauthTokenExpiration else {
+            return false
+        }
+
+        return Date() >= expiration
+    }
+}
+
+// MARK: - Authentication Type
+
+/// Authentication method for account
+enum AuthenticationType: String, Codable {
+    case password = "password"
+    case oauth2 = "oauth2"
 }
 
 // MARK: - Account Type

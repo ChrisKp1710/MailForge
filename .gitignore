@@ -55,3 +55,7 @@ fastlane/test_output
 
 # Claude Code
 .claude/
+
+# OAuth2 Credentials (keep secret!)
+GoogleService-Info.plist
+MicrosoftService-Info.plist
