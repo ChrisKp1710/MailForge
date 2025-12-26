@@ -132,12 +132,18 @@ final class IMAPClient {
     ///   - channel: NIO channel
     ///   - promise: Promise to fulfill when done
     private func addIMAPHandlers(to channel: Channel, promise: EventLoopPromise<Void>) {
-        channel.pipeline.addHandlers([
-            ByteToMessageHandler(IMAPLineDecoder()),
-            MessageToByteHandler(IMAPLineEncoder()),
-            IMAPResponseDecoder(),
-            responseHandler
-        ]).whenComplete { result in
+        // Pipeline order (closest to socket first):
+        // [Socket] -> [TLS/SSL if enabled] -> [ByteToMessageHandler] -> [IMAPResponseDecoder] -> [IMAPResponseHandler]
+        // Note: We write ByteBuffer directly in sendCommand(), so no MessageToByteHandler needed
+
+        // Add handlers in order from closest to socket to furthest
+        channel.pipeline.addHandler(ByteToMessageHandler(IMAPLineDecoder()), name: "lineDecoder").flatMap {
+            // Add response decoder
+            channel.pipeline.addHandler(IMAPResponseDecoder(), name: "responseDecoder")
+        }.flatMap {
+            // Add response handler (furthest from socket)
+            channel.pipeline.addHandler(self.responseHandler, name: "responseHandler")
+        }.whenComplete { result in
             switch result {
             case .success:
                 Logger.debug("IMAP handlers added to pipeline", category: self.logCategory)

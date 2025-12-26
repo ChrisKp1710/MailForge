@@ -1,8 +1,8 @@
 # ``MailForge - Roadmap di Sviluppo
 
 **Versione:** 1.0
-**Ultima Modifica:** 25 Dicembre 2024 - 04:45
-**Status Progetto:** 🟢 Tasks 1-4 Completati - Email Engine Core 100%
+**Ultima Modifica:** 26 Dicembre 2024 - 00:45
+**Status Progetto:** 🟢 Tasks 1-5 Completati - UI Moderna & Professional 100%
 
 ---
 
@@ -33,12 +33,12 @@
 | Fase       | Obiettivo          | Features                                    | Status         | Completamento |
 | ---------- | ------------------ | ------------------------------------------- | -------------- | ------------- |
 | **Fase 0** | Setup & Fondamenta | Progetto Xcode, Design System, Architettura | ✅ Completato  | 100%          |
-| **Fase 1** | Email Core MVP     | IMAP/SMTP, Lettura/Invio, UI Base           | 🟡 In Progress | 40%           |
+| **Fase 1** | Email Core MVP     | IMAP/SMTP, Lettura/Invio, UI Base           | 🟡 In Progress | 50%           |
 | **Fase 2** | Produttività      | Calendario, Note, Task                      | 🔴 Not Started | 0%            |
 | **Fase 3** | AI & Automazione   | ML on-device, Smart features                | 🔴 Not Started | 0%            |
 | **Fase 4** | Polish & Launch    | Testing, Beta, App Store                    | 🔴 Not Started | 0%            |
 
-**Progress Totale: 24%**
+**Progress Totale: 30%**
 
 ---
 
@@ -322,23 +322,38 @@
 
 ---
 
-#### 5. UI - Inbox & Message List
+#### 5. UI - Inbox & Message List ✅ COMPLETATO
 
-- [ ]  Sidebar
-  - Account list
-  - Folders tree
-  - Smart folders (Inbox, Sent, Starred, etc.)
-- [ ]  Message List View
-  - LazyVStack per performance
-  - Message row (from, subject, date, preview)
-  - Unread indicator
-  - Star icon
-  - Selection state
-- [ ]  Pull-to-refresh
-- [ ]  Loading states
-- [ ]  Empty states
+- [X]  Sidebar moderna con List nativa macOS
+  - Account list collapsabile
+  - Folders tree per account
+  - Smart folder icons (Inbox, Sent, Starred, etc.)
+  - Unread count badges
+  - Material.thin per effetto vetro
+  - Toggle sidebar funzionante
+- [X]  Message List View professionale
+  - List nativa con selection binding
+  - Message row elegante (from, subject, date, preview)
+  - Unread indicator blu
+  - Star/PEC/Attachment badges
+  - Selection state nativa
+  - Search bar moderna
+  - Material.regular background
+- [X]  Filtri e ricerca
+  - Search bar con TextField
+  - Filtro "Solo non letti"
+  - Refresh button
+- [X]  Loading states
+  - ProgressView per caricamento
+- [X]  Empty states eleganti
+  - "Nessuna cartella selezionata"
+  - "Nessun messaggio"
+  - "Nessun account"
+  - Typography moderna e icone hierarchical
 
 **Stima:** 1 settimana
+**Completato:** 26 Dicembre 2024
+**Progresso:** ✅ 100% completato (UI moderna stile Mail.app)
 
 ---
 

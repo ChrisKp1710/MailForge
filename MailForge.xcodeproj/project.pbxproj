@@ -32,6 +32,8 @@
 		8F167D362EFC468F0053AAAA /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D332EFC468F0053AAAA /* Logger.swift */; };
 		8F167D372EFC468F0053AAAA /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D302EFC468F0053AAAA /* AppError.swift */; };
 		8F167D392EFCEAEF0053AAAA /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D382EFCEAEF0053AAAA /* MainView.swift */; };
+		8FBA757F2EFEC2E10003079C /* TestData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FBA757E2EFEC2E10003079C /* TestData.swift */; };
+		8FBA75812EFEC98C0003079C /* IMAPTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FBA75802EFEC98C0003079C /* IMAPTestView.swift */; };
 		8FE8C4AF2EFCEF5600889A71 /* MessageListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FE8C4AC2EFCEF5600889A71 /* MessageListView.swift */; };
 		8FE8C4B02EFCEF5600889A71 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FE8C4AD2EFCEF5600889A71 /* SidebarView.swift */; };
 		8FE8C4B12EFCEF5600889A71 /* MessageDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FE8C4AB2EFCEF5600889A71 /* MessageDetailView.swift */; };
@@ -77,6 +79,8 @@
 		8F167D322EFC468F0053AAAA /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
 		8F167D332EFC468F0053AAAA /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		8F167D382EFCEAEF0053AAAA /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		8FBA757E2EFEC2E10003079C /* TestData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestData.swift; sourceTree = "<group>"; };
+		8FBA75802EFEC98C0003079C /* IMAPTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMAPTestView.swift; sourceTree = "<group>"; };
 		8FE8C4AB2EFCEF5600889A71 /* MessageDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageDetailView.swift; sourceTree = "<group>"; };
 		8FE8C4AC2EFCEF5600889A71 /* MessageListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageListView.swift; sourceTree = "<group>"; };
 		8FE8C4AD2EFCEF5600889A71 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
@@ -294,6 +298,8 @@
 		A50000014 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				8FBA75802EFEC98C0003079C /* IMAPTestView.swift */,
+				8FBA757E2EFEC2E10003079C /* TestData.swift */,
 				8F167D302EFC468F0053AAAA /* AppError.swift */,
 				8F167D312EFC468F0053AAAA /* ConfigurationManager.swift */,
 				8F167D322EFC468F0053AAAA /* KeychainManager.swift */,
@@ -411,10 +417,12 @@
 				A10000010 /* Colors.swift in Sources */,
 				8F167D392EFCEAEF0053AAAA /* MainView.swift in Sources */,
 				A10000011 /* Typography.swift in Sources */,
+				8FBA75812EFEC98C0003079C /* IMAPTestView.swift in Sources */,
 				A10000012 /* Spacing.swift in Sources */,
 				A10000020 /* DSButton.swift in Sources */,
 				A10000021 /* DSTextField.swift in Sources */,
 				8FE8C4AF2EFCEF5600889A71 /* MessageListView.swift in Sources */,
+				8FBA757F2EFEC2E10003079C /* TestData.swift in Sources */,
 				8FE8C4B02EFCEF5600889A71 /* SidebarView.swift in Sources */,
 				8FE8C4B12EFCEF5600889A71 /* MessageDetailView.swift in Sources */,
 				A10000022 /* DSCard.swift in Sources */,

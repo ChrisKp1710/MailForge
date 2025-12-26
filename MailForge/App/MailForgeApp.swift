@@ -27,12 +27,19 @@ struct MailForgeApp: App {
         }
     }()
 
+    // MARK: - State
+
+    @State private var showIMAPTest = false
+
     // MARK: - Body
 
     var body: some Scene {
         WindowGroup {
             MainView()
                 .modelContainer(modelContainer)
+                .sheet(isPresented: $showIMAPTest) {
+                    IMAPTestView()
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
@@ -42,6 +49,26 @@ struct MailForgeApp: App {
                     // TODO: Open composer
                 }
                 .keyboardShortcut("n", modifiers: .command)
+            }
+
+            // Debug menu for testing
+            CommandMenu("Debug") {
+                Button("Test IMAP Connection") {
+                    showIMAPTest = true
+                }
+                .keyboardShortcut("i", modifiers: [.command, .shift])
+
+                Divider()
+
+                Button("Popola Dati di Test") {
+                    TestDataGenerator.populateTestData(context: modelContainer.mainContext)
+                }
+                .keyboardShortcut("t", modifiers: [.command, .shift])
+
+                Button("Cancella Dati di Test") {
+                    TestDataGenerator.clearTestData(context: modelContainer.mainContext)
+                }
+                .keyboardShortcut("x", modifiers: [.command, .shift])
             }
         }
     }
