@@ -144,9 +144,15 @@ final class IMAPResponseDecoder: ChannelInboundHandler {
         }
 
         // LIST response
+        // Format: LIST (attributes) "delimiter" "folder-name"
+        // Example: LIST (\HasNoChildren) "/" "INBOX"
         if content.hasPrefix("LIST") {
-            // TODO: Parse LIST response properly
-            return .list(folders: [])
+            let parsed = parseLISTResponse(content)
+            if let folder = parsed {
+                return .list(folder: folder)
+            }
+            // If parsing fails, return as unknown
+            return .unknown(raw: line)
         }
 
         // FETCH response
@@ -167,6 +173,69 @@ final class IMAPResponseDecoder: ChannelInboundHandler {
 
         let afterPrefix = text[range.upperBound...].trimmingCharacters(in: .whitespaces)
         return afterPrefix
+    }
+
+    /// Parse LIST response
+    /// Format: LIST (attributes) "delimiter" "folder-name"
+    /// Example: LIST (\HasNoChildren) "/" "INBOX"
+    private func parseLISTResponse(_ content: String) -> IMAPFolder? {
+        // Remove "LIST " prefix
+        let afterLIST = content.dropFirst(5).trimmingCharacters(in: .whitespaces)
+
+        // Extract attributes (between parentheses)
+        var attributes: [String] = []
+        var remainder = afterLIST
+
+        if afterLIST.hasPrefix("(") {
+            guard let closeParenIndex = afterLIST.firstIndex(of: ")") else {
+                return nil
+            }
+
+            let attrsString = afterLIST[afterLIST.index(after: afterLIST.startIndex)..<closeParenIndex]
+            attributes = attrsString.split(separator: " ").map { String($0) }
+
+            remainder = String(afterLIST[afterLIST.index(after: closeParenIndex)...]).trimmingCharacters(in: .whitespaces)
+        }
+
+        // Extract delimiter (quoted string)
+        var delimiter: String? = nil
+        if remainder.hasPrefix("\"") {
+            let afterQuote = remainder.dropFirst()
+            guard let endQuoteIndex = afterQuote.firstIndex(of: "\"") else {
+                return nil
+            }
+
+            delimiter = String(afterQuote[..<endQuoteIndex])
+            remainder = String(afterQuote[afterQuote.index(after: endQuoteIndex)...]).trimmingCharacters(in: .whitespaces)
+        } else if remainder.hasPrefix("NIL") {
+            delimiter = nil
+            remainder = String(remainder.dropFirst(3)).trimmingCharacters(in: .whitespaces)
+        }
+
+        // Extract folder name (quoted string or unquoted)
+        var folderName = ""
+        if remainder.hasPrefix("\"") {
+            let afterQuote = remainder.dropFirst()
+            guard let endQuoteIndex = afterQuote.firstIndex(of: "\"") else {
+                return nil
+            }
+
+            folderName = String(afterQuote[..<endQuoteIndex])
+        } else {
+            // Unquoted folder name
+            folderName = remainder
+        }
+
+        guard !folderName.isEmpty else {
+            return nil
+        }
+
+        return IMAPFolder(
+            name: folderName,
+            path: folderName,
+            delimiter: delimiter,
+            attributes: attributes
+        )
     }
 }
 
@@ -288,7 +357,7 @@ enum IMAPResponse {
     case exists(count: Int)
     case recent(count: Int)
     case flags(flags: [String])
-    case list(folders: [String])
+    case list(folder: IMAPFolder)
     case fetch(uid: Int64, data: [String: String])
     case unknown(raw: String)
 }

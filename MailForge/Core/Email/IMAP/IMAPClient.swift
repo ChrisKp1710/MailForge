@@ -171,8 +171,14 @@ final class IMAPClient {
             return
         }
 
-        // Send LOGOUT command
-        try await sendCommand("LOGOUT")
+        // Send LOGOUT command with proper tag and wait for response
+        do {
+            let result = try await sendTaggedCommand("LOGOUT")
+            Logger.debug("LOGOUT response: \(result.tagged)", category: logCategory)
+        } catch {
+            // Log error but continue with disconnect
+            Logger.warning("LOGOUT command failed: \(error)", category: logCategory)
+        }
 
         // Close channel
         try await channel.close()

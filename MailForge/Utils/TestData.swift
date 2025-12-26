@@ -177,17 +177,40 @@ struct TestDataGenerator {
         print("🗑️ Clearing test data...")
 
         do {
-            // Delete all messages
-            try context.delete(model: Message.self)
+            // Fetch and delete all messages first (they depend on folders)
+            let messageDescriptor = FetchDescriptor<Message>()
+            let messages = try context.fetch(messageDescriptor)
+            for message in messages {
+                context.delete(message)
+            }
 
-            // Delete all folders
-            try context.delete(model: Folder.self)
+            // Fetch and delete all attachments
+            let attachmentDescriptor = FetchDescriptor<Attachment>()
+            let attachments = try context.fetch(attachmentDescriptor)
+            for attachment in attachments {
+                context.delete(attachment)
+            }
 
-            // Delete all accounts
-            try context.delete(model: Account.self)
+            // Fetch and delete all folders (they depend on accounts)
+            let folderDescriptor = FetchDescriptor<Folder>()
+            let folders = try context.fetch(folderDescriptor)
+            for folder in folders {
+                context.delete(folder)
+            }
+
+            // Finally, delete all accounts
+            let accountDescriptor = FetchDescriptor<Account>()
+            let accounts = try context.fetch(accountDescriptor)
+            for account in accounts {
+                context.delete(account)
+            }
 
             try context.save()
             print("✅ Test data cleared successfully!")
+            print("   - Deleted \(messages.count) messages")
+            print("   - Deleted \(attachments.count) attachments")
+            print("   - Deleted \(folders.count) folders")
+            print("   - Deleted \(accounts.count) accounts")
         } catch {
             print("❌ Error clearing test data: \(error)")
         }
