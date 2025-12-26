@@ -329,16 +329,25 @@ final class IMAPResponseHandler: ChannelInboundHandler {
     }
 
     func errorCaught(context: ChannelHandlerContext, error: Error) {
-        Logger.error("IMAP handler error", error: error, category: .imap)
+        // Check if this is an SSL shutdown error (expected during disconnect)
+        let errorDescription = String(describing: error)
+        let isSSLShutdownError = errorDescription.contains("NIOSSL") || errorDescription.contains("SSL")
 
-        // Fail all pending collectors
         lock.lock()
         let allCollectors = Array(collectors.values)
         collectors.removeAll()
         lock.unlock()
 
-        for collector in allCollectors {
-            collector.fail(with: error)
+        // SSL errors during shutdown are always benign and expected
+        if isSSLShutdownError {
+            Logger.debug("SSL shutdown (expected during disconnect): \(error)", category: .imap)
+        } else {
+            // Real non-SSL error - log it and fail pending collectors
+            Logger.error("IMAP handler error", error: error, category: .imap)
+
+            for collector in allCollectors {
+                collector.fail(with: error)
+            }
         }
 
         context.close(promise: nil)

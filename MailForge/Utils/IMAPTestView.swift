@@ -9,9 +9,9 @@ struct IMAPTestView: View {
     @State private var testResults: [String] = []
     @State private var hasError = false
 
-    // Test credentials (TEMPORARY - will be removed after test)
-    private let email = "Chriskp1710@gmail.com"
-    private let appPassword = "nojvisnnhrntnlws" // Spaces removed
+    // Test credentials - UPDATE THESE WITH YOUR OWN
+    private let email = "your-email@gmail.com"
+    private let appPassword = "your-app-password-here"
 
     var body: some View {
         VStack(spacing: 20) {

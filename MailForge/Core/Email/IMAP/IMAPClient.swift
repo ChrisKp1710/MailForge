@@ -180,8 +180,14 @@ final class IMAPClient {
             Logger.warning("LOGOUT command failed: \(error)", category: logCategory)
         }
 
-        // Close channel
-        try await channel.close()
+        // Close channel (ignore SSL shutdown errors as connection is closing anyway)
+        do {
+            try await channel.close()
+        } catch {
+            // SSL errors during close are expected and can be ignored
+            Logger.debug("Channel close error (expected): \(error)", category: logCategory)
+        }
+
         self.channel = nil
         self.state = .logout
 
