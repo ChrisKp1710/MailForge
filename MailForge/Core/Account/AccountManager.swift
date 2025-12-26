@@ -121,6 +121,106 @@ final class AccountManager: @unchecked Sendable {
         return account
     }
 
+    // MARK: - Sync Folders
+
+    /// Sync IMAP folders for an account
+    /// - Parameter account: Account to sync folders for
+    @MainActor
+    func syncFolders(for account: Account) async throws {
+        Logger.info("Syncing folders for \(account.emailAddress)...", category: logCategory)
+
+        // Create IMAP client
+        let client: IMAPClient
+
+        if account.authType == .oauth2 {
+            // OAuth2 authentication
+            guard let accessToken = try? KeychainManager.shared.loadOAuth2AccessToken(for: account.keychainIdentifier) else {
+                throw AccountError.passwordNotFound(emailAddress: account.emailAddress)
+            }
+
+            client = IMAPClient(
+                host: account.imapHost,
+                port: account.imapPort,
+                useTLS: account.imapUseTLS,
+                username: account.emailAddress,
+                password: "" // Not used for OAuth2
+            )
+
+            // Connect and authenticate with OAuth2
+            try await client.connect()
+            try await client.authenticateOAuth2(accessToken: accessToken)
+
+        } else {
+            // Password authentication
+            guard let password = try? account.loadPassword() else {
+                throw AccountError.passwordNotFound(emailAddress: account.emailAddress)
+            }
+
+            client = IMAPClient(
+                host: account.imapHost,
+                port: account.imapPort,
+                useTLS: account.imapUseTLS,
+                username: account.emailAddress,
+                password: password
+            )
+
+            // Connect and authenticate
+            try await client.connect()
+        }
+
+        // List all folders
+        let imapFolders = try await client.list()
+        Logger.info("Found \(imapFolders.count) folders on server", category: logCategory)
+
+        // Get existing folders for this account
+        let existingFolders = account.folders
+
+        // Track display order
+        var displayOrder = 0
+
+        // Process each IMAP folder
+        for imapFolder in imapFolders {
+            // Skip non-selectable folders
+            guard imapFolder.isSelectable else {
+                Logger.debug("Skipping non-selectable folder: \(imapFolder.name)", category: logCategory)
+                continue
+            }
+
+            // Check if folder already exists
+            if existingFolders.contains(where: { $0.path == imapFolder.path }) {
+                Logger.debug("Folder already exists: \(imapFolder.name)", category: logCategory)
+                continue
+            }
+
+            // Determine folder type
+            let folderType = imapFolder.specialType ?? .custom
+
+            // Create new folder
+            let folder = Folder(
+                name: imapFolder.name,
+                path: imapFolder.path,
+                type: folderType,
+                displayOrder: displayOrder
+            )
+            folder.account = account
+
+            // Insert into database
+            modelContext.insert(folder)
+
+            Logger.info("Created folder: \(imapFolder.name) (type: \(folderType.rawValue))", category: logCategory)
+
+            displayOrder += 1
+        }
+
+        // Save changes
+        try modelContext.save()
+
+        // Disconnect
+        try await client.disconnect()
+
+        Logger.info("Folder sync completed: \(displayOrder) new folders added", category: logCategory)
+    }
+
     // MARK: - Test Connection
 
     /// Test IMAP connection

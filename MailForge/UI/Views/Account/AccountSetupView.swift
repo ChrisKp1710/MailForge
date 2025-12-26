@@ -482,6 +482,13 @@ struct AccountSetupView: View {
 
                 Logger.info("Account created successfully with OAuth2", category: .email)
 
+                // Sync IMAP folders
+                Logger.info("Syncing IMAP folders...", category: .email)
+                let accountManager = AccountManager(modelContext: modelContext)
+                try await accountManager.syncFolders(for: account)
+
+                Logger.info("Folder sync completed", category: .email)
+
                 // Close the view
                 isAuthenticatingOAuth = false
                 dismiss()
@@ -592,12 +599,17 @@ struct AccountSetupView: View {
             let accountManager = AccountManager(modelContext: modelContext)
 
             do {
-                _ = try await accountManager.addAccount(
+                let account = try await accountManager.addAccount(
                     email: email,
                     password: password,
                     preset: selectedPreset,
                     displayName: displayName.isEmpty ? nil : displayName
                 )
+
+                // Sync IMAP folders
+                Logger.info("Syncing IMAP folders...", category: .email)
+                try await accountManager.syncFolders(for: account)
+                Logger.info("Folder sync completed", category: .email)
 
                 await MainActor.run {
                     dismiss()
