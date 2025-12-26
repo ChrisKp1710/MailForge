@@ -17,6 +17,7 @@ struct MainView: View {
     @State private var selectedMessage: Message?
 
     @State private var showAccountSetup = false
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     // MARK: - Queries
 
@@ -25,7 +26,7 @@ struct MainView: View {
     // MARK: - Body
 
     var body: some View {
-        NavigationSplitView(columnVisibility: .constant(.all)) {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             // Sidebar - Account & Folders
             SidebarView(
                 accounts: accounts,
