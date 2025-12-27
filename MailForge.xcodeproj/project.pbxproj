@@ -32,6 +32,8 @@
 		8F167D362EFC468F0053AAAA /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D332EFC468F0053AAAA /* Logger.swift */; };
 		8F167D372EFC468F0053AAAA /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D302EFC468F0053AAAA /* AppError.swift */; };
 		8F167D392EFCEAEF0053AAAA /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D382EFCEAEF0053AAAA /* MainView.swift */; };
+		8FA836612EFF73BA00EE8906 /* GoogleService-Info.plist.example in Resources */ = {isa = PBXBuildFile; fileRef = 8FA836602EFF73BA00EE8906 /* GoogleService-Info.plist.example */; };
+		8FA836622EFF73BA00EE8906 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 8FA8365F2EFF73BA00EE8906 /* GoogleService-Info.plist */; };
 		8FBA757F2EFEC2E10003079C /* TestData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FBA757E2EFEC2E10003079C /* TestData.swift */; };
 		8FBA75812EFEC98C0003079C /* IMAPTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FBA75802EFEC98C0003079C /* IMAPTestView.swift */; };
 		8FBA75842EFF305E0003079C /* OAuth2Manager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FBA75822EFF305E0003079C /* OAuth2Manager.swift */; };
@@ -80,6 +82,8 @@
 		8F167D322EFC468F0053AAAA /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
 		8F167D332EFC468F0053AAAA /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		8F167D382EFCEAEF0053AAAA /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		8FA8365F2EFF73BA00EE8906 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		8FA836602EFF73BA00EE8906 /* GoogleService-Info.plist.example */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "GoogleService-Info.plist.example"; sourceTree = "<group>"; };
 		8FBA757E2EFEC2E10003079C /* TestData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestData.swift; sourceTree = "<group>"; };
 		8FBA75802EFEC98C0003079C /* IMAPTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMAPTestView.swift; sourceTree = "<group>"; };
 		8FBA75822EFF305E0003079C /* OAuth2Manager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuth2Manager.swift; sourceTree = "<group>"; };
@@ -246,6 +250,8 @@
 		A50000001 /* MailForge */ = {
 			isa = PBXGroup;
 			children = (
+				8FA8365F2EFF73BA00EE8906 /* GoogleService-Info.plist */,
+				8FA836602EFF73BA00EE8906 /* GoogleService-Info.plist.example */,
 				A50000010 /* App */,
 				A50000011 /* UI */,
 				A50000012 /* Core */,
@@ -409,6 +415,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000003 /* Assets.xcassets in Resources */,
+				8FA836612EFF73BA00EE8906 /* GoogleService-Info.plist.example in Resources */,
+				8FA836622EFF73BA00EE8906 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

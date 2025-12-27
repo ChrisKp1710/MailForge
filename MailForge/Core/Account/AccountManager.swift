@@ -134,8 +134,45 @@ final class AccountManager: @unchecked Sendable {
 
         if account.authType == .oauth2 {
             // OAuth2 authentication
-            guard let accessToken = try? KeychainManager.shared.loadOAuth2AccessToken(for: account.keychainIdentifier) else {
-                throw AccountError.passwordNotFound(emailAddress: account.emailAddress)
+            var accessToken = try KeychainManager.shared.loadOAuth2AccessToken(for: account.keychainIdentifier)
+
+            // Check if token needs refresh (expired or expiring soon)
+            if account.isTokenExpired || account.needsTokenRefresh {
+                Logger.info("Access token expired or expiring soon, refreshing...", category: logCategory)
+
+                // Get refresh token
+                guard let refreshToken = try? KeychainManager.shared.loadOAuth2RefreshToken(for: account.keychainIdentifier) else {
+                    throw AccountError.passwordNotFound(emailAddress: account.emailAddress)
+                }
+
+                // Determine OAuth2 provider from account
+                let provider: OAuth2Provider
+                if account.type == .gmail {
+                    provider = .google
+                } else if account.type == .outlook {
+                    provider = .microsoft
+                } else {
+                    throw AccountError.invalidAccount
+                }
+
+                // Refresh the token
+                let oauth2Manager = OAuth2Manager(provider: provider)
+                let newTokens = try await oauth2Manager.refreshAccessToken(refreshToken: refreshToken)
+
+                // Save new tokens
+                try KeychainManager.shared.saveOAuth2AccessToken(newTokens.accessToken, for: account.keychainIdentifier)
+                if let newRefreshToken = newTokens.refreshToken {
+                    try KeychainManager.shared.saveOAuth2RefreshToken(newRefreshToken, for: account.keychainIdentifier)
+                }
+
+                // Update expiration date
+                account.oauthTokenExpiration = newTokens.expirationDate
+                try modelContext.save()
+
+                // Use the new token
+                accessToken = newTokens.accessToken
+
+                Logger.info("Access token refreshed successfully", category: logCategory)
             }
 
             client = IMAPClient(

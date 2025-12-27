@@ -33,6 +33,7 @@ enum AccountError: AppErrorProtocol {
     case missingIMAPSettings
     case missingSMTPSettings
     case passwordNotFound(emailAddress: String)
+    case invalidAccount
 
     var title: String {
         return "Account Error"
@@ -54,6 +55,8 @@ enum AccountError: AppErrorProtocol {
             return "SMTP server settings are missing or incomplete"
         case .passwordNotFound(let emailAddress):
             return "Password not found for account \(emailAddress)"
+        case .invalidAccount:
+            return "Account configuration is invalid"
         }
     }
 
@@ -73,6 +76,8 @@ enum AccountError: AppErrorProtocol {
             return "Please provide SMTP server host and port"
         case .passwordNotFound:
             return "Please try adding the account again"
+        case .invalidAccount:
+            return "Please check the account type and OAuth provider settings"
         }
     }
 

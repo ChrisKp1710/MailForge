@@ -81,7 +81,41 @@ struct MainView: View {
             if selectedFolder == nil, let account = selectedAccount {
                 selectedFolder = account.folders.first { $0.name == "INBOX" } ?? account.folders.first
             }
+
+            // Auto-sync folders for accounts without folders
+            Task {
+                await syncFoldersForAccountsWithoutFolders()
+            }
         }
+    }
+
+    // MARK: - Auto-sync
+
+    /// Automatically sync folders for accounts that don't have any folders yet
+    @MainActor
+    private func syncFoldersForAccountsWithoutFolders() async {
+        Logger.info("Checking accounts for folder sync...", category: .email)
+
+        let accountManager = AccountManager(modelContext: modelContext)
+
+        for account in accounts {
+            // Sync if account has no folders or very few folders (< 2)
+            if account.folders.isEmpty || account.folders.count < 2 {
+                Logger.info("Auto-syncing folders for account: \(account.emailAddress)", category: .email)
+
+                do {
+                    try await accountManager.syncFolders(for: account)
+                    Logger.info("Auto-sync completed for \(account.emailAddress)", category: .email)
+                } catch {
+                    Logger.error("Auto-sync failed for \(account.emailAddress)", error: error, category: .email)
+                    // Continue with other accounts even if one fails
+                }
+            } else {
+                Logger.debug("Account \(account.emailAddress) already has folders, skipping auto-sync", category: .email)
+            }
+        }
+
+        Logger.info("Auto-sync check completed", category: .email)
     }
 }
 
