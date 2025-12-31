@@ -1,4 +1,5 @@
 import SwiftUI
+import WebKit
 
 // MARK: - Message Detail View
 
@@ -12,6 +13,12 @@ struct MessageDetailView: View {
     // MARK: - State
 
     @State private var showFullHeaders = false
+    @State private var isLoadingBody = false
+    @State private var bodyLoadError: Error?
+
+    // MARK: - Environment
+
+    @Environment(\.modelContext) private var modelContext
 
     // MARK: - Body
 
@@ -164,21 +171,103 @@ struct MessageDetailView: View {
 
     private var messageBody: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            if let bodySnippet = message.bodySnippet, !bodySnippet.isEmpty {
-                Text(bodySnippet)
-                    .font(.bodyMedium)
-                    .foregroundColor(.textPrimary)
-                    .textSelection(.enabled)
-            } else {
-                Text(message.preview)
-                    .font(.bodyMedium)
-                    .foregroundColor(.textPrimary)
-                    .textSelection(.enabled)
-            }
+            // Show HTML body if available
+            if let htmlBody = message.bodyHTML, !htmlBody.isEmpty {
+                HTMLEmailView(htmlContent: htmlBody)
+                    .frame(minHeight: 400)
 
-            // TODO: Render HTML body if available
-            // TODO: Load full body from file if needed
+            // Show plain text body if available
+            } else if let textBody = message.bodyText, !textBody.isEmpty {
+                PlainTextEmailView(textContent: textBody)
+                    .frame(minHeight: 400)
+
+            // Show loading indicator while fetching
+            } else if isLoadingBody {
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Caricamento contenuto email...")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 200)
+
+            // Show error if body load failed
+            } else if let error = bodyLoadError {
+                VStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 32))
+                        .foregroundColor(.orange)
+
+                    Text("Impossibile caricare il contenuto dell'email")
+                        .font(.body.weight(.medium))
+
+                    Text(error.localizedDescription)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Button("Riprova") {
+                        Task {
+                            await loadMessageBody()
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .frame(maxWidth: .infinity, minHeight: 200)
+
+            // Show preview/snippet if body not loaded yet
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    if let bodySnippet = message.bodySnippet, !bodySnippet.isEmpty {
+                        Text(bodySnippet)
+                            .font(.bodyMedium)
+                            .foregroundColor(.textSecondary)
+                            .textSelection(.enabled)
+                    } else {
+                        Text(message.preview)
+                            .font(.bodyMedium)
+                            .foregroundColor(.textSecondary)
+                            .textSelection(.enabled)
+                    }
+
+                    Text("Tocca per caricare il contenuto completo")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                        .padding(.top, 8)
+                }
+                .onTapGesture {
+                    Task {
+                        await loadMessageBody()
+                    }
+                }
+            }
         }
+        .task {
+            // Auto-load body when view appears
+            if message.bodyHTML == nil && message.bodyText == nil && !isLoadingBody {
+                await loadMessageBody()
+            }
+        }
+    }
+
+    // MARK: - Load Message Body
+
+    /// Load full message body from server
+    private func loadMessageBody() async {
+        isLoadingBody = true
+        bodyLoadError = nil
+
+        do {
+            let accountManager = AccountManager(modelContext: modelContext)
+            try await accountManager.fetchMessageBody(for: message)
+
+            Logger.info("Message body loaded successfully", category: .email)
+        } catch {
+            Logger.error("Failed to load message body", error: error, category: .email)
+            bodyLoadError = error
+        }
+
+        isLoadingBody = false
     }
 
     // MARK: - Attachments List
@@ -251,6 +340,117 @@ struct MessageDetailView: View {
         .padding(Spacing.md)
         .background(Color.semanticSuccess.opacity(0.1))
         .cornerRadius(CornerRadius.md)
+    }
+}
+
+// MARK: - HTML Email View
+
+/// WebView for rendering HTML email content
+private struct HTMLEmailView: NSViewRepresentable {
+
+    let htmlContent: String
+
+    func makeNSView(context: Context) -> WKWebView {
+        let webView = WKWebView()
+        webView.navigationDelegate = context.coordinator
+
+        // Disable user interaction features for security
+        webView.configuration.preferences.javaScriptEnabled = false
+        webView.configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
+
+        return webView
+    }
+
+    func updateNSView(_ webView: WKWebView, context: Context) {
+        // Wrap HTML content with basic styling for better display
+        let wrappedHTML = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    color: #333;
+                    margin: 0;
+                    padding: 16px;
+                    word-wrap: break-word;
+                }
+                img {
+                    max-width: 100%;
+                    height: auto;
+                }
+                a {
+                    color: #007AFF;
+                    text-decoration: none;
+                }
+                a:hover {
+                    text-decoration: underline;
+                }
+                pre {
+                    background-color: #f5f5f5;
+                    padding: 12px;
+                    border-radius: 4px;
+                    overflow-x: auto;
+                }
+                code {
+                    background-color: #f5f5f5;
+                    padding: 2px 6px;
+                    border-radius: 3px;
+                    font-family: 'SF Mono', Monaco, Consolas, monospace;
+                }
+                blockquote {
+                    border-left: 4px solid #ddd;
+                    margin-left: 0;
+                    padding-left: 16px;
+                    color: #666;
+                }
+            </style>
+        </head>
+        <body>
+        \(htmlContent)
+        </body>
+        </html>
+        """
+
+        webView.loadHTMLString(wrappedHTML, baseURL: nil)
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    class Coordinator: NSObject, WKNavigationDelegate {
+        // Intercept link clicks to open in default browser instead of in webview
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            if navigationAction.navigationType == .linkActivated {
+                if let url = navigationAction.request.url {
+                    NSWorkspace.shared.open(url)
+                    decisionHandler(.cancel)
+                    return
+                }
+            }
+            decisionHandler(.allow)
+        }
+    }
+}
+
+/// Plain text email view (for non-HTML emails)
+private struct PlainTextEmailView: View {
+    let textContent: String
+
+    var body: some View {
+        ScrollView {
+            Text(textContent)
+                .font(.system(.body, design: .default))
+                .foregroundColor(.primary)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+        }
     }
 }
 

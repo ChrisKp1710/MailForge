@@ -420,6 +420,102 @@ final class AccountManager: @unchecked Sendable {
         Logger.info("Message sync completed: \(newMessagesCount) new messages added to '\(folder.name)'", category: logCategory)
     }
 
+    // MARK: - Fetch Message Body
+
+    /// Fetch full body for a specific message
+    /// - Parameter message: Message to fetch body for
+    @MainActor
+    func fetchMessageBody(for message: Message) async throws {
+        guard let folder = message.folder,
+              let account = folder.account else {
+            throw AccountError.accountNotFound
+        }
+
+        Logger.info("Fetching body for message UID \(message.uid) in folder '\(folder.name)'", category: logCategory)
+
+        // Create IMAP client
+        let client: IMAPClient
+
+        if account.authType == .oauth2 {
+            var accessToken = try KeychainManager.shared.loadOAuth2AccessToken(for: account.keychainIdentifier)
+
+            if account.isTokenExpired || account.needsTokenRefresh {
+                Logger.info("Access token expired, refreshing...", category: logCategory)
+
+                guard let refreshToken = try? KeychainManager.shared.loadOAuth2RefreshToken(for: account.keychainIdentifier) else {
+                    throw AccountError.passwordNotFound(emailAddress: account.emailAddress)
+                }
+
+                let provider: OAuth2Provider = account.type == .gmail ? .google : .microsoft
+                let oauth2Manager = OAuth2Manager(provider: provider)
+                let newTokens = try await oauth2Manager.refreshAccessToken(refreshToken: refreshToken)
+
+                try KeychainManager.shared.saveOAuth2AccessToken(newTokens.accessToken, for: account.keychainIdentifier)
+                if let newRefreshToken = newTokens.refreshToken {
+                    try KeychainManager.shared.saveOAuth2RefreshToken(newRefreshToken, for: account.keychainIdentifier)
+                }
+
+                account.oauthTokenExpiration = newTokens.expirationDate
+                try modelContext.save()
+
+                accessToken = newTokens.accessToken
+            }
+
+            client = IMAPClient(
+                host: account.imapHost,
+                port: account.imapPort,
+                useTLS: account.imapUseTLS,
+                username: account.emailAddress,
+                password: ""
+            )
+
+            try await client.connect()
+            try await client.authenticateOAuth2(accessToken: accessToken)
+        } else {
+            guard let password = try? account.loadPassword() else {
+                throw AccountError.passwordNotFound(emailAddress: account.emailAddress)
+            }
+
+            client = IMAPClient(
+                host: account.imapHost,
+                port: account.imapPort,
+                useTLS: account.imapUseTLS,
+                username: account.emailAddress,
+                password: password
+            )
+
+            try await client.connect()
+        }
+
+        // Select the folder
+        _ = try await client.select(folder: folder.path)
+
+        // Fetch body with PEEK to not mark as read
+        let bodyData = try await client.fetchBodySection(uid: message.uid, section: "TEXT", peek: true)
+
+        // Convert to string (assuming UTF-8, fallback to Latin1)
+        let bodyString = String(data: bodyData, encoding: .utf8) ?? String(data: bodyData, encoding: .isoLatin1) ?? ""
+
+        // Try to detect if it's HTML or plain text
+        let isHTML = bodyString.contains("<html") || bodyString.contains("<HTML") || bodyString.contains("<!DOCTYPE")
+
+        if isHTML {
+            message.bodyHTML = bodyString
+            message.bodyText = nil // Could extract text from HTML if needed
+        } else {
+            message.bodyText = bodyString
+            message.bodyHTML = nil
+        }
+
+        // Save changes
+        try modelContext.save()
+
+        // Disconnect
+        try await client.disconnect()
+
+        Logger.info("Message body fetched successfully", category: logCategory)
+    }
+
     // MARK: - Test Connection
 
     /// Test IMAP connection

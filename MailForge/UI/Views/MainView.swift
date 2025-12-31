@@ -99,6 +99,14 @@ struct MainView: View {
         let accountManager = AccountManager(modelContext: modelContext)
 
         for account in accounts {
+            // Check if sync is needed based on last sync time
+            let shouldSync = shouldPerformSync(for: account)
+
+            if !shouldSync {
+                Logger.debug("Account \(account.emailAddress) was synced recently, skipping", category: .email)
+                continue
+            }
+
             // Sync if account has no folders or very few folders (< 2)
             if account.folders.isEmpty || account.folders.count < 2 {
                 Logger.info("Auto-syncing folders for account: \(account.emailAddress)", category: .email)
@@ -110,6 +118,10 @@ struct MainView: View {
                     // After folders are synced, sync messages for important folders
                     await syncMessagesForImportantFolders(account: account, accountManager: accountManager)
 
+                    // Update last sync date
+                    account.lastSyncDate = Date()
+                    try? modelContext.save()
+
                 } catch {
                     Logger.error("Auto-sync folders failed for \(account.emailAddress)", error: error, category: .email)
                     // Continue with other accounts even if one fails
@@ -119,26 +131,63 @@ struct MainView: View {
 
                 // Even if folders exist, check if messages need syncing
                 await syncMessagesForImportantFolders(account: account, accountManager: accountManager)
+
+                // Update last sync date
+                account.lastSyncDate = Date()
+                try? modelContext.save()
             }
         }
 
         Logger.info("Auto-sync check completed", category: .email)
     }
 
-    /// Sync messages for important folders (INBOX, Sent, Drafts)
+    /// Check if sync should be performed based on last sync time
+    /// - Parameter account: Account to check
+    /// - Returns: True if sync should be performed
+    private func shouldPerformSync(for account: Account) -> Bool {
+        guard let lastSync = account.lastSyncDate else {
+            // Never synced, should sync
+            return true
+        }
+
+        // Don't sync if last sync was less than 5 minutes ago
+        let minimumSyncInterval: TimeInterval = 5 * 60 // 5 minutes
+        let timeSinceLastSync = Date().timeIntervalSince(lastSync)
+
+        return timeSinceLastSync >= minimumSyncInterval
+    }
+
+    /// Sync messages for all folders in the account
     @MainActor
     private func syncMessagesForImportantFolders(account: Account, accountManager: AccountManager) async {
-        Logger.info("Syncing messages for important folders: \(account.emailAddress)", category: .email)
+        Logger.info("Syncing messages for all folders: \(account.emailAddress)", category: .email)
 
-        // Priority order: INBOX first, then other important folders
-        let priorityFolders: [FolderType] = [.inbox, .sent, .drafts, .trash]
+        // Priority order: INBOX first, then other important folders, then all others
+        let priorityOrder: [FolderType] = [.inbox, .sent, .drafts, .trash]
 
-        for folderType in priorityFolders {
-            // Find folder of this type
-            guard let folder = account.folders.first(where: { $0.type == folderType }) else {
-                continue
+        // Separate folders into priority and others
+        var priorityFolders: [Folder] = []
+        var otherFolders: [Folder] = []
+
+        for folder in account.folders {
+            if priorityOrder.contains(folder.type) {
+                priorityFolders.append(folder)
+            } else {
+                otherFolders.append(folder)
             }
+        }
 
+        // Sort priority folders by their priority order
+        priorityFolders.sort { folder1, folder2 in
+            let index1 = priorityOrder.firstIndex(of: folder1.type) ?? Int.max
+            let index2 = priorityOrder.firstIndex(of: folder2.type) ?? Int.max
+            return index1 < index2
+        }
+
+        // Combine: priority folders first, then others
+        let allFolders = priorityFolders + otherFolders
+
+        for folder in allFolders {
             // Check if messages need to be re-synced (corrupted data with unknown@unknown.com)
             let hasCorruptedMessages = folder.messages.contains { $0.from == "unknown@unknown.com" }
 
@@ -159,8 +208,11 @@ struct MainView: View {
 
             Logger.info("Syncing messages for folder: \(folder.name)", category: .email)
 
+            // Use smaller limit for non-priority folders to avoid overwhelming
+            let messageLimit = priorityFolders.contains(folder) ? 50 : 20
+
             do {
-                try await accountManager.syncMessages(for: folder, limit: 20)
+                try await accountManager.syncMessages(for: folder, limit: messageLimit)
                 Logger.info("Successfully synced messages for '\(folder.name)'", category: .email)
             } catch {
                 Logger.error("Failed to sync messages for '\(folder.name)'", error: error, category: .email)
@@ -168,7 +220,7 @@ struct MainView: View {
             }
         }
 
-        Logger.info("Important folders message sync completed for \(account.emailAddress)", category: .email)
+        Logger.info("All folders message sync completed for \(account.emailAddress)", category: .email)
     }
 }
 

@@ -46,6 +46,12 @@ final class Message {
     /// Email body snippet (for search/preview without reading file)
     var bodySnippet: String?
 
+    /// Email body HTML (loaded on demand)
+    var bodyHTML: String?
+
+    /// Email body plain text (loaded on demand)
+    var bodyText: String?
+
     /// Flags
     var isRead: Bool
     var isStarred: Bool
@@ -107,6 +113,8 @@ final class Message {
         self.preview = preview
         self.bodyPath = nil
         self.bodySnippet = nil
+        self.bodyHTML = nil
+        self.bodyText = nil
         self.isRead = isRead
         self.isStarred = isStarred
         self.isFlagged = isFlagged
