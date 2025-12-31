@@ -156,9 +156,15 @@ final class IMAPResponseDecoder: ChannelInboundHandler {
         }
 
         // FETCH response
+        // Format: * <seq> FETCH (KEY value KEY value ...)
+        // Example: * 186 FETCH (UID 2394 FLAGS (\Seen) ENVELOPE (...) ...)
         if content.contains("FETCH") {
-            // TODO: Parse FETCH response properly
-            return .fetch(uid: 0, data: [:])
+            if let fetchData = parseFETCHResponse(content) {
+                return .fetch(sequenceNumber: fetchData.sequenceNumber, data: fetchData.data)
+            }
+            // If parsing fails, log and return as unknown
+            Logger.warning("Failed to parse FETCH response: \(line)", category: .imap)
+            return .unknown(raw: line)
         }
 
         // Generic untagged response
@@ -235,6 +241,403 @@ final class IMAPResponseDecoder: ChannelInboundHandler {
             path: folderName,
             delimiter: delimiter,
             attributes: attributes
+        )
+    }
+
+    /// Parse FETCH response
+    /// Format: <seq> FETCH (KEY value KEY value ...)
+    /// Example: 186 FETCH (UID 2394 FLAGS (\Seen) ENVELOPE (...) ...)
+    private func parseFETCHResponse(_ content: String) -> (sequenceNumber: Int, data: IMAPFetchData)? {
+        // Extract sequence number
+        let components = content.split(separator: " ", maxSplits: 2)
+        guard components.count >= 3,
+              let seqNum = Int(components[0]),
+              components[1] == "FETCH" else {
+            return nil
+        }
+
+        // Extract the content inside parentheses
+        let afterFetch = String(components[2])
+        guard afterFetch.hasPrefix("("), afterFetch.hasSuffix(")") else {
+            return nil
+        }
+
+        let dataContent = String(afterFetch.dropFirst().dropLast())
+
+        // Parse key-value pairs
+        var fetchData = IMAPFetchData()
+        var position = dataContent.startIndex
+
+        while position < dataContent.endIndex {
+            // Skip whitespace
+            while position < dataContent.endIndex && dataContent[position].isWhitespace {
+                position = dataContent.index(after: position)
+            }
+
+            guard position < dataContent.endIndex else { break }
+
+            // Extract key
+            var keyEnd = position
+            while keyEnd < dataContent.endIndex && !dataContent[keyEnd].isWhitespace {
+                keyEnd = dataContent.index(after: keyEnd)
+            }
+
+            let key = String(dataContent[position..<keyEnd]).uppercased()
+            position = keyEnd
+
+            // Skip whitespace
+            while position < dataContent.endIndex && dataContent[position].isWhitespace {
+                position = dataContent.index(after: position)
+            }
+
+            guard position < dataContent.endIndex else { break }
+
+            // Parse value based on key
+            switch key {
+            case "UID":
+                if let (value, newPos) = parseNumber(from: dataContent, at: position) {
+                    fetchData.uid = Int64(value)
+                    position = newPos
+                }
+
+            case "RFC822.SIZE":
+                if let (value, newPos) = parseNumber(from: dataContent, at: position) {
+                    fetchData.size = Int64(value)
+                    position = newPos
+                }
+
+            case "FLAGS":
+                if let (flags, newPos) = parseFlags(from: dataContent, at: position) {
+                    fetchData.flags = flags
+                    position = newPos
+                }
+
+            case "INTERNALDATE":
+                if let (date, newPos) = parseQuotedString(from: dataContent, at: position) {
+                    fetchData.internalDate = date
+                    position = newPos
+                }
+
+            case "ENVELOPE":
+                if let (envelope, newPos) = parseEnvelope(from: dataContent, at: position) {
+                    fetchData.envelope = envelope
+                    position = newPos
+                }
+
+            case "BODYSTRUCTURE", "BODY":
+                if let (_, newPos) = parseParenthesizedList(from: dataContent, at: position) {
+                    // Skip body structure for now
+                    position = newPos
+                }
+
+            default:
+                // Unknown key, try to skip value
+                if dataContent[position] == "(" {
+                    if let (_, newPos) = parseParenthesizedList(from: dataContent, at: position) {
+                        position = newPos
+                    }
+                } else if dataContent[position] == "\"" {
+                    if let (_, newPos) = parseQuotedString(from: dataContent, at: position) {
+                        position = newPos
+                    }
+                } else {
+                    // Skip to next space or end
+                    while position < dataContent.endIndex && !dataContent[position].isWhitespace {
+                        position = dataContent.index(after: position)
+                    }
+                }
+            }
+        }
+
+        return (seqNum, fetchData)
+    }
+
+    /// Parse a number from string
+    private func parseNumber(from string: String, at position: String.Index) -> (Int, String.Index)? {
+        var pos = position
+        var numberStr = ""
+
+        while pos < string.endIndex && string[pos].isNumber {
+            numberStr.append(string[pos])
+            pos = string.index(after: pos)
+        }
+
+        guard let number = Int(numberStr) else {
+            return nil
+        }
+
+        return (number, pos)
+    }
+
+    /// Parse a quoted string
+    private func parseQuotedString(from string: String, at position: String.Index) -> (String, String.Index)? {
+        guard position < string.endIndex, string[position] == "\"" else {
+            return nil
+        }
+
+        var pos = string.index(after: position)
+        var result = ""
+        var escaped = false
+
+        while pos < string.endIndex {
+            let char = string[pos]
+
+            if escaped {
+                result.append(char)
+                escaped = false
+            } else if char == "\\" {
+                escaped = true
+            } else if char == "\"" {
+                // End of string
+                return (result, string.index(after: pos))
+            } else {
+                result.append(char)
+            }
+
+            pos = string.index(after: pos)
+        }
+
+        return nil // Unclosed quote
+    }
+
+    /// Parse flags list: (\Seen \Flagged)
+    private func parseFlags(from string: String, at position: String.Index) -> ([String], String.Index)? {
+        guard position < string.endIndex, string[position] == "(" else {
+            return nil
+        }
+
+        var pos = string.index(after: position)
+        var flags: [String] = []
+        var currentFlag = ""
+
+        while pos < string.endIndex {
+            let char = string[pos]
+
+            if char == ")" {
+                // End of flags
+                if !currentFlag.isEmpty {
+                    flags.append(currentFlag)
+                }
+                return (flags, string.index(after: pos))
+            } else if char.isWhitespace {
+                if !currentFlag.isEmpty {
+                    flags.append(currentFlag)
+                    currentFlag = ""
+                }
+            } else {
+                currentFlag.append(char)
+            }
+
+            pos = string.index(after: pos)
+        }
+
+        return nil // Unclosed parenthesis
+    }
+
+    /// Parse generic parenthesized list (returns raw content)
+    private func parseParenthesizedList(from string: String, at position: String.Index) -> (String, String.Index)? {
+        guard position < string.endIndex, string[position] == "(" else {
+            return nil
+        }
+
+        var pos = string.index(after: position)
+        var depth = 1
+        var content = ""
+        var inQuote = false
+        var escaped = false
+
+        while pos < string.endIndex && depth > 0 {
+            let char = string[pos]
+
+            if escaped {
+                content.append(char)
+                escaped = false
+            } else if char == "\\" && inQuote {
+                escaped = true
+                content.append(char)
+            } else if char == "\"" {
+                inQuote.toggle()
+                content.append(char)
+            } else if char == "(" && !inQuote {
+                depth += 1
+                content.append(char)
+            } else if char == ")" && !inQuote {
+                depth -= 1
+                if depth > 0 {
+                    content.append(char)
+                }
+            } else {
+                content.append(char)
+            }
+
+            pos = string.index(after: pos)
+        }
+
+        guard depth == 0 else {
+            return nil // Unclosed parenthesis
+        }
+
+        return (content, pos)
+    }
+
+    /// Parse ENVELOPE structure
+    /// Format: (date subject from sender reply-to to cc bcc in-reply-to message-id)
+    private func parseEnvelope(from string: String, at position: String.Index) -> (IMAPEnvelopeRaw, String.Index)? {
+        guard let (content, newPos) = parseParenthesizedList(from: string, at: position) else {
+            return nil
+        }
+
+        // Parse envelope fields
+        var fields: [String?] = []
+        var pos = content.startIndex
+
+        while pos < content.endIndex && fields.count < 10 {
+            // Skip whitespace
+            while pos < content.endIndex && content[pos].isWhitespace {
+                pos = content.index(after: pos)
+            }
+
+            guard pos < content.endIndex else { break }
+
+            if content[pos] == "\"" {
+                // Quoted string
+                if let (value, nextPos) = parseQuotedString(from: content, at: pos) {
+                    fields.append(value)
+                    pos = nextPos
+                } else {
+                    fields.append(nil)
+                    break
+                }
+            } else if content[pos...].hasPrefix("NIL") {
+                // NIL value
+                fields.append(nil)
+                pos = content.index(pos, offsetBy: 3)
+            } else if content[pos] == "(" {
+                // Address list or nested structure
+                if let (_, nextPos) = parseParenthesizedList(from: content, at: pos) {
+                    // Store the raw address list content for later parsing
+                    let addressContent = String(content[pos..<nextPos])
+                    fields.append(addressContent)
+                    pos = nextPos
+                } else {
+                    fields.append(nil)
+                    break
+                }
+            } else {
+                // Unknown format, skip
+                while pos < content.endIndex && !content[pos].isWhitespace && content[pos] != "(" {
+                    pos = content.index(after: pos)
+                }
+            }
+        }
+
+        // Ensure we have enough fields (10 total)
+        while fields.count < 10 {
+            fields.append(nil)
+        }
+
+        // Parse address lists
+        let from = parseAddressList(fields[2])
+        let sender = parseAddressList(fields[3])
+        let replyTo = parseAddressList(fields[4])
+        let to = parseAddressList(fields[5])
+        let cc = parseAddressList(fields[6])
+        let bcc = parseAddressList(fields[7])
+
+        let envelope = IMAPEnvelopeRaw(
+            date: fields[0],
+            subject: fields[1],
+            from: from,
+            sender: sender,
+            replyTo: replyTo,
+            to: to,
+            cc: cc,
+            bcc: bcc,
+            inReplyTo: fields[8],
+            messageId: fields[9]
+        )
+
+        return (envelope, newPos)
+    }
+
+    /// Parse address list from string
+    /// Format: (("name" NIL "mailbox" "host") (...))
+    private func parseAddressList(_ addressListStr: String?) -> [IMAPAddressRaw] {
+        guard let str = addressListStr, str.hasPrefix("("), str.hasSuffix(")") else {
+            return []
+        }
+
+        var addresses: [IMAPAddressRaw] = []
+        let content = String(str.dropFirst().dropLast())
+        var pos = content.startIndex
+
+        while pos < content.endIndex {
+            // Skip whitespace
+            while pos < content.endIndex && content[pos].isWhitespace {
+                pos = content.index(after: pos)
+            }
+
+            guard pos < content.endIndex else { break }
+
+            if content[pos] == "(" {
+                // Parse single address: ("name" NIL "mailbox" "host")
+                if let (addressContent, newPos) = parseParenthesizedList(from: content, at: pos) {
+                    if let address = parseSingleAddress(addressContent) {
+                        addresses.append(address)
+                    }
+                    pos = newPos
+                } else {
+                    break
+                }
+            } else {
+                // Unexpected format
+                break
+            }
+        }
+
+        return addresses
+    }
+
+    /// Parse single address
+    /// Format: "name" NIL "mailbox" "host"
+    private func parseSingleAddress(_ content: String) -> IMAPAddressRaw? {
+        var fields: [String?] = []
+        var pos = content.startIndex
+
+        while pos < content.endIndex && fields.count < 4 {
+            // Skip whitespace
+            while pos < content.endIndex && content[pos].isWhitespace {
+                pos = content.index(after: pos)
+            }
+
+            guard pos < content.endIndex else { break }
+
+            if content[pos] == "\"" {
+                if let (value, nextPos) = parseQuotedString(from: content, at: pos) {
+                    fields.append(value)
+                    pos = nextPos
+                } else {
+                    break
+                }
+            } else if content[pos...].hasPrefix("NIL") {
+                fields.append(nil)
+                pos = content.index(pos, offsetBy: 3)
+            } else {
+                // Skip unknown
+                while pos < content.endIndex && !content[pos].isWhitespace {
+                    pos = content.index(after: pos)
+                }
+            }
+        }
+
+        guard fields.count >= 4 else {
+            return nil
+        }
+
+        return IMAPAddressRaw(
+            name: fields[0],
+            mailbox: fields[1],
+            host: fields[2]
         )
     }
 }
@@ -367,7 +770,7 @@ enum IMAPResponse {
     case recent(count: Int)
     case flags(flags: [String])
     case list(folder: IMAPFolder)
-    case fetch(uid: Int64, data: [String: String])
+    case fetch(sequenceNumber: Int, data: IMAPFetchData)
     case unknown(raw: String)
 }
 
@@ -376,4 +779,37 @@ enum IMAPResponseStatus: String {
     case ok = "OK"
     case no = "NO"
     case bad = "BAD"
+}
+
+/// IMAP FETCH data (parsed from FETCH response)
+struct IMAPFetchData {
+    var uid: Int64?
+    var flags: [String]?
+    var size: Int64?
+    var internalDate: String?
+    var envelope: IMAPEnvelopeRaw?
+    var bodyStructure: String?
+    var rfc822: Data?
+    var bodyPeek: Data?
+}
+
+/// Raw ENVELOPE data (before parsing into IMAPEnvelope)
+struct IMAPEnvelopeRaw {
+    let date: String?
+    let subject: String?
+    let from: [IMAPAddressRaw]
+    let sender: [IMAPAddressRaw]
+    let replyTo: [IMAPAddressRaw]
+    let to: [IMAPAddressRaw]
+    let cc: [IMAPAddressRaw]
+    let bcc: [IMAPAddressRaw]
+    let inReplyTo: String?
+    let messageId: String?
+}
+
+/// Raw address data (before parsing)
+struct IMAPAddressRaw {
+    let name: String?
+    let mailbox: String?
+    let host: String?
 }

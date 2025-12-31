@@ -105,17 +105,58 @@ struct MainView: View {
 
                 do {
                     try await accountManager.syncFolders(for: account)
-                    Logger.info("Auto-sync completed for \(account.emailAddress)", category: .email)
+                    Logger.info("Auto-sync folders completed for \(account.emailAddress)", category: .email)
+
+                    // After folders are synced, sync messages for important folders
+                    await syncMessagesForImportantFolders(account: account, accountManager: accountManager)
+
                 } catch {
-                    Logger.error("Auto-sync failed for \(account.emailAddress)", error: error, category: .email)
+                    Logger.error("Auto-sync folders failed for \(account.emailAddress)", error: error, category: .email)
                     // Continue with other accounts even if one fails
                 }
             } else {
-                Logger.debug("Account \(account.emailAddress) already has folders, skipping auto-sync", category: .email)
+                Logger.debug("Account \(account.emailAddress) already has folders", category: .email)
+
+                // Even if folders exist, check if messages need syncing
+                await syncMessagesForImportantFolders(account: account, accountManager: accountManager)
             }
         }
 
         Logger.info("Auto-sync check completed", category: .email)
+    }
+
+    /// Sync messages for important folders (INBOX, Sent, Drafts)
+    @MainActor
+    private func syncMessagesForImportantFolders(account: Account, accountManager: AccountManager) async {
+        Logger.info("Syncing messages for important folders: \(account.emailAddress)", category: .email)
+
+        // Priority order: INBOX first, then other important folders
+        let priorityFolders: [FolderType] = [.inbox, .sent, .drafts, .trash]
+
+        for folderType in priorityFolders {
+            // Find folder of this type
+            guard let folder = account.folders.first(where: { $0.type == folderType }) else {
+                continue
+            }
+
+            // Skip if folder already has messages
+            if !folder.messages.isEmpty {
+                Logger.debug("Folder '\(folder.name)' already has messages, skipping", category: .email)
+                continue
+            }
+
+            Logger.info("Syncing messages for folder: \(folder.name)", category: .email)
+
+            do {
+                try await accountManager.syncMessages(for: folder, limit: 20)
+                Logger.info("Successfully synced messages for '\(folder.name)'", category: .email)
+            } catch {
+                Logger.error("Failed to sync messages for '\(folder.name)'", error: error, category: .email)
+                // Continue with other folders even if one fails
+            }
+        }
+
+        Logger.info("Important folders message sync completed for \(account.emailAddress)", category: .email)
     }
 }
 

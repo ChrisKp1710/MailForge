@@ -161,23 +161,72 @@ struct IMAPCommandResult {
         var messages: [IMAPMessageData] = []
 
         for response in untagged {
-            if case .fetch(let uid, let data) = response {
-                // Parse data dictionary into IMAPMessageData
-                let message = IMAPMessageData(
-                    uid: uid,
-                    sequenceNumber: nil,
-                    flags: [],
-                    size: nil,
+            if case .fetch(let seqNum, let fetchData) = response {
+                // Convert IMAPFetchData to IMAPMessageData
+                var message = IMAPMessageData(
+                    uid: fetchData.uid ?? 0,
+                    sequenceNumber: seqNum,
+                    flags: fetchData.flags ?? [],
+                    size: fetchData.size,
                     envelope: nil,
                     bodyStructure: nil,
-                    rfc822: nil,
+                    rfc822: fetchData.rfc822,
                     internalDate: nil
                 )
+
+                // Convert raw envelope to IMAPEnvelope
+                if let rawEnvelope = fetchData.envelope {
+                    message.envelope = convertEnvelope(rawEnvelope)
+                }
+
+                // Parse internal date
+                if let dateStr = fetchData.internalDate {
+                    message.internalDate = parseIMAPDate(dateStr)
+                }
+
                 messages.append(message)
             }
         }
 
         return messages
+    }
+
+    /// Convert raw envelope to IMAPEnvelope
+    private func convertEnvelope(_ raw: IMAPEnvelopeRaw) -> IMAPEnvelope {
+        return IMAPEnvelope(
+            date: raw.date.flatMap { parseIMAPDate($0) },
+            subject: raw.subject,
+            from: raw.from.compactMap { convertAddress($0) },
+            sender: raw.sender.compactMap { convertAddress($0) },
+            replyTo: raw.replyTo.compactMap { convertAddress($0) },
+            to: raw.to.compactMap { convertAddress($0) },
+            cc: raw.cc.compactMap { convertAddress($0) },
+            bcc: raw.bcc.compactMap { convertAddress($0) },
+            inReplyTo: raw.inReplyTo,
+            messageId: raw.messageId
+        )
+    }
+
+    /// Convert raw address to IMAPAddress
+    private func convertAddress(_ raw: IMAPAddressRaw) -> IMAPAddress? {
+        guard let mailbox = raw.mailbox, let host = raw.host else {
+            return nil
+        }
+
+        return IMAPAddress(
+            name: raw.name,
+            mailbox: mailbox,
+            host: host
+        )
+    }
+
+    /// Parse IMAP date string
+    /// Format: "30-Oct-2023 12:54:04 +0000"
+    private func parseIMAPDate(_ dateStr: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd-MMM-yyyy HH:mm:ss Z"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter.date(from: dateStr)
     }
 
     /// Extract UIDs from SEARCH response

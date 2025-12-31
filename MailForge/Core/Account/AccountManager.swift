@@ -258,6 +258,168 @@ final class AccountManager: @unchecked Sendable {
         Logger.info("Folder sync completed: \(displayOrder) new folders added", category: logCategory)
     }
 
+    // MARK: - Sync Messages
+
+    /// Sync messages for a folder
+    /// - Parameters:
+    ///   - folder: Folder to sync messages for
+    ///   - limit: Maximum number of messages to fetch (default: 100, most recent)
+    @MainActor
+    func syncMessages(for folder: Folder, limit: Int = 100) async throws {
+        guard let account = folder.account else {
+            throw AccountError.accountNotFound
+        }
+
+        Logger.info("Syncing messages for folder: \(folder.name) (account: \(account.emailAddress))", category: logCategory)
+
+        // Create IMAP client
+        let client: IMAPClient
+
+        if account.authType == .oauth2 {
+            // OAuth2 authentication with refresh
+            var accessToken = try KeychainManager.shared.loadOAuth2AccessToken(for: account.keychainIdentifier)
+
+            // Check if token needs refresh
+            if account.isTokenExpired || account.needsTokenRefresh {
+                Logger.info("Access token expired or expiring soon, refreshing...", category: logCategory)
+
+                guard let refreshToken = try? KeychainManager.shared.loadOAuth2RefreshToken(for: account.keychainIdentifier) else {
+                    throw AccountError.passwordNotFound(emailAddress: account.emailAddress)
+                }
+
+                let provider: OAuth2Provider
+                if account.type == .gmail {
+                    provider = .google
+                } else if account.type == .outlook {
+                    provider = .microsoft
+                } else {
+                    throw AccountError.invalidAccount
+                }
+
+                let oauth2Manager = OAuth2Manager(provider: provider)
+                let newTokens = try await oauth2Manager.refreshAccessToken(refreshToken: refreshToken)
+
+                try KeychainManager.shared.saveOAuth2AccessToken(newTokens.accessToken, for: account.keychainIdentifier)
+                if let newRefreshToken = newTokens.refreshToken {
+                    try KeychainManager.shared.saveOAuth2RefreshToken(newRefreshToken, for: account.keychainIdentifier)
+                }
+
+                account.oauthTokenExpiration = newTokens.expirationDate
+                try modelContext.save()
+
+                accessToken = newTokens.accessToken
+                Logger.info("Access token refreshed successfully", category: logCategory)
+            }
+
+            client = IMAPClient(
+                host: account.imapHost,
+                port: account.imapPort,
+                useTLS: account.imapUseTLS,
+                username: account.emailAddress,
+                password: ""
+            )
+
+            try await client.connect()
+            try await client.authenticateOAuth2(accessToken: accessToken)
+
+        } else {
+            // Password authentication
+            guard let password = try? account.loadPassword() else {
+                throw AccountError.passwordNotFound(emailAddress: account.emailAddress)
+            }
+
+            client = IMAPClient(
+                host: account.imapHost,
+                port: account.imapPort,
+                useTLS: account.imapUseTLS,
+                username: account.emailAddress,
+                password: password
+            )
+
+            try await client.connect()
+        }
+
+        // Select the folder
+        let folderInfo = try await client.select(folder: folder.path)
+        Logger.info("Folder '\(folder.name)' selected: \(folderInfo.exists) messages", category: logCategory)
+
+        // Update folder counts
+        folder.totalCount = folderInfo.exists
+        folder.unreadCount = folderInfo.unseen ?? 0
+
+        // If folder is empty, we're done
+        guard folderInfo.exists > 0 else {
+            Logger.info("Folder is empty, nothing to sync", category: logCategory)
+            try await client.disconnect()
+            return
+        }
+
+        // Fetch recent messages (limit to avoid overwhelming)
+        // For professional client: fetch most recent N messages
+        let startUID = max(1, folderInfo.exists - limit + 1)
+        let uidRange = "\(startUID):*"
+
+        Logger.info("Fetching message envelopes for UID range: \(uidRange)", category: logCategory)
+
+        // Fetch only essential data (ENVELOPE + FLAGS) - not full headers to save bandwidth/memory
+        let messagesData = try await client.uidFetch(
+            uidSet: uidRange,
+            items: ["UID", "FLAGS", "ENVELOPE", "RFC822.SIZE", "INTERNALDATE"]
+        )
+        Logger.info("Fetched \(messagesData.count) message envelopes", category: logCategory)
+
+        // Get existing message UIDs to avoid duplicates
+        let existingUIDs = Set(folder.messages.map { $0.uid })
+
+        // Process and save messages
+        var newMessagesCount = 0
+        for messageData in messagesData {
+            // Skip if already exists
+            if existingUIDs.contains(messageData.uid) {
+                continue
+            }
+
+            // Parse envelope
+            guard let envelope = messageData.envelope else {
+                Logger.warning("Message UID \(messageData.uid) has no envelope, skipping", category: logCategory)
+                continue
+            }
+
+            // Create Message model
+            let message = Message(
+                messageID: envelope.messageId ?? "\(messageData.uid)",
+                uid: messageData.uid,
+                subject: envelope.subject ?? "(No Subject)",
+                from: envelope.from.first?.email ?? "unknown@unknown.com",
+                fromName: envelope.from.first?.name,
+                to: envelope.to.map { $0.email },
+                cc: envelope.cc.map { $0.email },
+                bcc: envelope.bcc.map { $0.email },
+                date: envelope.date ?? messageData.internalDate ?? Date(),
+                preview: envelope.subject ?? "",
+                isRead: messageData.flags.contains("\\Seen"),
+                isStarred: messageData.flags.contains("\\Flagged"),
+                isFlagged: messageData.flags.contains("\\Flagged"),
+                isDraft: messageData.flags.contains("\\Draft"),
+                hasAttachments: false, // TODO: parse body structure
+                size: messageData.size ?? 0,
+                isPEC: false // TODO: detect PEC
+            )
+
+            message.folder = folder
+            modelContext.insert(message)
+            newMessagesCount += 1
+        }
+
+        // Save changes
+        try modelContext.save()
+
+        // Disconnect
+        try await client.disconnect()
+
+        Logger.info("Message sync completed: \(newMessagesCount) new messages added to '\(folder.name)'", category: logCategory)
+    }
+
     // MARK: - Test Connection
 
     /// Test IMAP connection
