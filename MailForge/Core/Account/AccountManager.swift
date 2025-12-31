@@ -490,22 +490,46 @@ final class AccountManager: @unchecked Sendable {
         // Select the folder
         _ = try await client.select(folder: folder.path)
 
-        // Fetch body with PEEK to not mark as read
-        let bodyData = try await client.fetchBodySection(uid: message.uid, section: "TEXT", peek: true)
+        // Try different methods to fetch body content
+        var bodyHTML: String?
+        var bodyText: String?
 
-        // Convert to string (assuming UTF-8, fallback to Latin1)
-        let bodyString = String(data: bodyData, encoding: .utf8) ?? String(data: bodyData, encoding: .isoLatin1) ?? ""
+        // Method 1: Try to fetch TEXT part (works for most emails)
+        do {
+            let textData = try await client.fetchBodySection(uid: message.uid, section: "1", peek: true)
+            let textString = String(data: textData, encoding: .utf8) ?? String(data: textData, encoding: .isoLatin1) ?? ""
 
-        // Try to detect if it's HTML or plain text
-        let isHTML = bodyString.contains("<html") || bodyString.contains("<HTML") || bodyString.contains("<!DOCTYPE")
+            // Check if it's HTML or plain text
+            if textString.lowercased().contains("<html") || textString.lowercased().contains("<!doctype") {
+                bodyHTML = decodeEmailContent(textString)
+            } else {
+                bodyText = decodeEmailContent(textString)
+            }
+        } catch {
+            Logger.warning("Failed to fetch BODY[1], trying alternative methods", category: logCategory)
 
-        if isHTML {
-            message.bodyHTML = bodyString
-            message.bodyText = nil // Could extract text from HTML if needed
-        } else {
-            message.bodyText = bodyString
-            message.bodyHTML = nil
+            // Method 2: Try BODY[2] for HTML (multipart emails)
+            do {
+                let htmlData = try await client.fetchBodySection(uid: message.uid, section: "2", peek: true)
+                let htmlString = String(data: htmlData, encoding: .utf8) ?? String(data: htmlData, encoding: .isoLatin1) ?? ""
+                bodyHTML = decodeEmailContent(htmlString)
+
+                // Also try to get text from part 1
+                if let textData = try? await client.fetchBodySection(uid: message.uid, section: "1", peek: true) {
+                    let textString = String(data: textData, encoding: .utf8) ?? String(data: textData, encoding: .isoLatin1) ?? ""
+                    bodyText = decodeEmailContent(textString)
+                }
+            } catch {
+                Logger.warning("Failed to fetch BODY[2], using preview only", category: logCategory)
+
+                // Method 3: Use existing preview as fallback
+                bodyText = message.preview
+            }
         }
+
+        // Save the extracted content
+        message.bodyHTML = bodyHTML
+        message.bodyText = bodyText
 
         // Save changes
         try modelContext.save()
@@ -687,6 +711,111 @@ final class AccountManager: @unchecked Sendable {
         }
 
         return totalCount
+    }
+
+    // MARK: - Email Body Parsing
+
+    /// Parse email body to extract HTML and text parts
+    /// - Parameter bodyString: Raw RFC822 message body
+    /// - Returns: Tuple of (HTML, Text) parts
+    private func parseEmailBody(_ bodyString: String) -> (html: String?, text: String?) {
+        var htmlPart: String?
+        var textPart: String?
+
+        // Split by boundary to find multipart sections
+        let lines = bodyString.components(separatedBy: .newlines)
+
+        // Find Content-Type boundary
+        var boundary: String?
+        for line in lines {
+            if line.lowercased().contains("boundary=") {
+                let parts = line.components(separatedBy: "boundary=")
+                if parts.count > 1 {
+                    boundary = parts[1].trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+                    break
+                }
+            }
+        }
+
+        if let boundary = boundary {
+            // Split by boundary
+            let parts = bodyString.components(separatedBy: "--\(boundary)")
+
+            for part in parts {
+                let trimmedPart = part.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                // Check if this part is HTML
+                if trimmedPart.lowercased().contains("content-type: text/html") {
+                    // Extract HTML content after headers
+                    if let bodyStart = trimmedPart.range(of: "\n\n") ?? trimmedPart.range(of: "\r\n\r\n") {
+                        htmlPart = String(trimmedPart[bodyStart.upperBound...])
+                    }
+                }
+                // Check if this part is plain text
+                else if trimmedPart.lowercased().contains("content-type: text/plain") {
+                    // Extract text content after headers
+                    if let bodyStart = trimmedPart.range(of: "\n\n") ?? trimmedPart.range(of: "\r\n\r\n") {
+                        textPart = String(trimmedPart[bodyStart.upperBound...])
+                    }
+                }
+            }
+        } else {
+            // No multipart, check if entire body is HTML or text
+            if bodyString.lowercased().contains("<html") || bodyString.lowercased().contains("<!doctype") {
+                // Extract HTML after headers
+                if let bodyStart = bodyString.range(of: "\n\n") ?? bodyString.range(of: "\r\n\r\n") {
+                    htmlPart = String(bodyString[bodyStart.upperBound...])
+                } else {
+                    htmlPart = bodyString
+                }
+            } else {
+                // Extract text after headers
+                if let bodyStart = bodyString.range(of: "\n\n") ?? bodyString.range(of: "\r\n\r\n") {
+                    textPart = String(bodyString[bodyStart.upperBound...])
+                } else {
+                    textPart = bodyString
+                }
+            }
+        }
+
+        // Decode quoted-printable and base64 if needed
+        if let html = htmlPart {
+            htmlPart = decodeEmailContent(html)
+        }
+        if let text = textPart {
+            textPart = decodeEmailContent(text)
+        }
+
+        return (htmlPart, textPart)
+    }
+
+    /// Decode email content (quoted-printable, base64, etc.)
+    /// - Parameter content: Encoded content
+    /// - Returns: Decoded content
+    private func decodeEmailContent(_ content: String) -> String {
+        var decoded = content
+
+        // Remove quoted-printable encoding (=XX)
+        decoded = decoded.replacingOccurrences(of: "=\r\n", with: "")
+        decoded = decoded.replacingOccurrences(of: "=\n", with: "")
+
+        // Simple quoted-printable decoding
+        let pattern = "=(\\w{2})"
+        if let regex = try? NSRegularExpression(pattern: pattern) {
+            let matches = regex.matches(in: decoded, range: NSRange(decoded.startIndex..., in: decoded))
+            for match in matches.reversed() {
+                if let range = Range(match.range, in: decoded),
+                   let hexRange = Range(match.range(at: 1), in: decoded) {
+                    let hexString = String(decoded[hexRange])
+                    if let value = Int(hexString, radix: 16),
+                       let scalar = UnicodeScalar(value) {
+                        decoded.replaceSubrange(range, with: String(Character(scalar)))
+                    }
+                }
+            }
+        }
+
+        return decoded
     }
 
     // MARK: - Validation
