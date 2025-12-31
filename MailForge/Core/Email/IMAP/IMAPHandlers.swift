@@ -599,7 +599,8 @@ final class IMAPResponseDecoder: ChannelInboundHandler {
     }
 
     /// Parse single address
-    /// Format: "name" NIL "mailbox" "host"
+    /// Format: "name" "route" "mailbox" "host"
+    /// Note: route is obsolete and usually NIL
     private func parseSingleAddress(_ content: String) -> IMAPAddressRaw? {
         var fields: [String?] = []
         var pos = content.startIndex
@@ -634,10 +635,15 @@ final class IMAPResponseDecoder: ChannelInboundHandler {
             return nil
         }
 
+        // IMAP address format: (name route mailbox host)
+        // fields[0] = name
+        // fields[1] = route (obsolete, usually NIL)
+        // fields[2] = mailbox (local part)
+        // fields[3] = host (domain part)
         return IMAPAddressRaw(
             name: fields[0],
-            mailbox: fields[1],
-            host: fields[2]
+            mailbox: fields[2],  // Skip route, use mailbox
+            host: fields[3]      // Use host
         )
     }
 }

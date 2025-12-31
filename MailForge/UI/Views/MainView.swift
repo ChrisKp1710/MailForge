@@ -139,9 +139,21 @@ struct MainView: View {
                 continue
             }
 
-            // Skip if folder already has messages
-            if !folder.messages.isEmpty {
-                Logger.debug("Folder '\(folder.name)' already has messages, skipping", category: .email)
+            // Check if messages need to be re-synced (corrupted data with unknown@unknown.com)
+            let hasCorruptedMessages = folder.messages.contains { $0.from == "unknown@unknown.com" }
+
+            if hasCorruptedMessages {
+                Logger.warning("Folder '\(folder.name)' has corrupted messages, deleting and re-syncing", category: .email)
+
+                // Delete all corrupted messages
+                for message in folder.messages {
+                    modelContext.delete(message)
+                }
+
+                // Save deletion
+                try? modelContext.save()
+            } else if !folder.messages.isEmpty {
+                Logger.debug("Folder '\(folder.name)' already has valid messages, skipping", category: .email)
                 continue
             }
 
