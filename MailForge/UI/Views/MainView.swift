@@ -99,16 +99,12 @@ struct MainView: View {
         let accountManager = AccountManager(modelContext: modelContext)
 
         for account in accounts {
-            // TEMPORARY: Force sync to update envelope data after SwiftMail migration
-            // TODO: Remove this after confirming email bodies work correctly
-            let shouldSync = true // shouldPerformSync(for: account)
+            let shouldSync = shouldPerformSync(for: account)
 
             if !shouldSync {
                 Logger.debug("Account \(account.emailAddress) was synced recently, skipping", category: .email)
                 continue
             }
-
-            Logger.warning("🔄 FORCE SYNC: Forcing sync to update message data with correct envelopes", category: .email)
 
             // Sync if account has no folders or very few folders (< 2)
             if account.folders.isEmpty || account.folders.count < 2 {
@@ -191,7 +187,7 @@ struct MainView: View {
         let allFolders = priorityFolders + otherFolders
 
         for folder in allFolders {
-            // Check if messages need to be re-synced (corrupted data with unknown@unknown.com)
+            // Check if messages need to be re-synced (corrupted data)
             let hasCorruptedMessages = folder.messages.contains { $0.from == "unknown@unknown.com" }
 
             if hasCorruptedMessages {
@@ -205,18 +201,9 @@ struct MainView: View {
                 // Save deletion
                 try? modelContext.save()
             } else if !folder.messages.isEmpty {
-                // Check if this folder needs force resync (to fix stale UIDs from old parser)
-                let needsForceResync = folder.name == "INBOX" ||
-                                      folder.path == "INBOX" ||
-                                      priorityFolders.contains(folder)
-
-                if needsForceResync {
-                    Logger.warning("🔄 Folder '\(folder.name)' needs force resync to fix stale UIDs from old parser", category: .email)
-                    // Continue to resync this folder
-                } else {
-                    Logger.debug("Folder '\(folder.name)' already has valid messages, skipping", category: .email)
-                    continue
-                }
+                // Skip folders that already have valid messages
+                Logger.debug("Folder '\(folder.name)' already has valid messages, skipping", category: .email)
+                continue
             }
 
             Logger.info("Syncing messages for folder: \(folder.name)", category: .email)
@@ -231,11 +218,8 @@ struct MainView: View {
                 messageLimit = 50   // Increased from 20
             }
 
-            // Force resync for folders with existing messages (to fix stale UIDs)
-            let forceResync = !folder.messages.isEmpty
-
             do {
-                try await accountManager.syncMessages(for: folder, limit: messageLimit, forceResync: forceResync)
+                try await accountManager.syncMessages(for: folder, limit: messageLimit, forceResync: false)
                 Logger.info("Successfully synced messages for '\(folder.name)'", category: .email)
             } catch {
                 Logger.error("Failed to sync messages for '\(folder.name)'", error: error, category: .email)
