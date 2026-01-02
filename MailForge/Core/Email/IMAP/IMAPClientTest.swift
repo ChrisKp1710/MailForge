@@ -153,7 +153,6 @@ final class IMAPClientTest {
         return IMAPClient(
             host: testConfig.host,
             port: testConfig.port,
-            useTLS: testConfig.useTLS,
             username: testConfig.username,
             password: testConfig.password
         )

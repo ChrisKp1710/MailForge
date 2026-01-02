@@ -91,7 +91,6 @@ struct IMAPTestView: View {
                 let client = IMAPClient(
                     host: "imap.gmail.com",
                     port: 993,
-                    useTLS: true,
                     username: email,
                     password: appPassword
                 )

@@ -175,17 +175,13 @@ final class AccountManager: @unchecked Sendable {
                 Logger.info("Access token refreshed successfully", category: logCategory)
             }
 
+            // Create client with OAuth2 token
             client = IMAPClient(
                 host: account.imapHost,
                 port: account.imapPort,
-                useTLS: account.imapUseTLS,
                 username: account.emailAddress,
-                password: "" // Not used for OAuth2
+                oauth2Token: accessToken
             )
-
-            // Connect and authenticate with OAuth2
-            try await client.connect()
-            try await client.authenticateOAuth2(accessToken: accessToken)
 
         } else {
             // Password authentication
@@ -193,17 +189,18 @@ final class AccountManager: @unchecked Sendable {
                 throw AccountError.passwordNotFound(emailAddress: account.emailAddress)
             }
 
+            // Create client with password
             client = IMAPClient(
                 host: account.imapHost,
                 port: account.imapPort,
-                useTLS: account.imapUseTLS,
                 username: account.emailAddress,
                 password: password
             )
-
-            // Connect and authenticate
-            try await client.connect()
         }
+
+        // Connect and authenticate (OAuth2 or password)
+        try await client.connect()
+        try await client.login()
 
         // List all folders
         let imapFolders = try await client.list()
@@ -311,16 +308,13 @@ final class AccountManager: @unchecked Sendable {
                 Logger.info("Access token refreshed successfully", category: logCategory)
             }
 
+            // Create client with OAuth2 token
             client = IMAPClient(
                 host: account.imapHost,
                 port: account.imapPort,
-                useTLS: account.imapUseTLS,
                 username: account.emailAddress,
-                password: ""
+                oauth2Token: accessToken
             )
-
-            try await client.connect()
-            try await client.authenticateOAuth2(accessToken: accessToken)
 
         } else {
             // Password authentication
@@ -328,16 +322,18 @@ final class AccountManager: @unchecked Sendable {
                 throw AccountError.passwordNotFound(emailAddress: account.emailAddress)
             }
 
+            // Create client with password
             client = IMAPClient(
                 host: account.imapHost,
                 port: account.imapPort,
-                useTLS: account.imapUseTLS,
                 username: account.emailAddress,
                 password: password
             )
-
-            try await client.connect()
         }
+
+        // Connect and authenticate (OAuth2 or password)
+        try await client.connect()
+        try await client.login()
 
         // Select the folder
         let folderInfo = try await client.select(folder: folder.path)
@@ -461,75 +457,64 @@ final class AccountManager: @unchecked Sendable {
                 accessToken = newTokens.accessToken
             }
 
+            // Create client with OAuth2 token
             client = IMAPClient(
                 host: account.imapHost,
                 port: account.imapPort,
-                useTLS: account.imapUseTLS,
                 username: account.emailAddress,
-                password: ""
+                oauth2Token: accessToken
             )
 
-            try await client.connect()
-            try await client.authenticateOAuth2(accessToken: accessToken)
         } else {
             guard let password = try? account.loadPassword() else {
                 throw AccountError.passwordNotFound(emailAddress: account.emailAddress)
             }
 
+            // Create client with password
             client = IMAPClient(
                 host: account.imapHost,
                 port: account.imapPort,
-                useTLS: account.imapUseTLS,
                 username: account.emailAddress,
                 password: password
             )
-
-            try await client.connect()
         }
+
+        // Connect and authenticate (OAuth2 or password)
+        try await client.connect()
+        try await client.login()
 
         // Select the folder
         _ = try await client.select(folder: folder.path)
 
-        // Try different methods to fetch body content
-        var bodyHTML: String?
-        var bodyText: String?
+        // Fetch entire body (marks as read, but acceptable when user opens email)
+        Logger.info("Fetching body for message UID \(message.uid)", category: logCategory)
 
-        // Method 1: Try to fetch TEXT part (works for most emails)
-        do {
-            let textData = try await client.fetchBodySection(uid: message.uid, section: "1", peek: true)
-            let textString = String(data: textData, encoding: .utf8) ?? String(data: textData, encoding: .isoLatin1) ?? ""
+        let bodyData = try await client.fetchBody(uid: message.uid)
 
-            // Check if it's HTML or plain text
-            if textString.lowercased().contains("<html") || textString.lowercased().contains("<!doctype") {
-                bodyHTML = decodeEmailContent(textString)
-            } else {
-                bodyText = decodeEmailContent(textString)
-            }
-        } catch {
-            Logger.warning("Failed to fetch BODY[1], trying alternative methods", category: logCategory)
+        // Convert to string
+        let bodyString = String(data: bodyData, encoding: .utf8) ??
+                        String(data: bodyData, encoding: .isoLatin1) ??
+                        String(data: bodyData, encoding: .ascii) ?? ""
 
-            // Method 2: Try BODY[2] for HTML (multipart emails)
-            do {
-                let htmlData = try await client.fetchBodySection(uid: message.uid, section: "2", peek: true)
-                let htmlString = String(data: htmlData, encoding: .utf8) ?? String(data: htmlData, encoding: .isoLatin1) ?? ""
-                bodyHTML = decodeEmailContent(htmlString)
+        Logger.debug("Fetched body: \(bodyString.prefix(200))...", category: logCategory)
 
-                // Also try to get text from part 1
-                if let textData = try? await client.fetchBodySection(uid: message.uid, section: "1", peek: true) {
-                    let textString = String(data: textData, encoding: .utf8) ?? String(data: textData, encoding: .isoLatin1) ?? ""
-                    bodyText = decodeEmailContent(textString)
-                }
-            } catch {
-                Logger.warning("Failed to fetch BODY[2], using preview only", category: logCategory)
-
-                // Method 3: Use existing preview as fallback
-                bodyText = message.preview
-            }
-        }
+        // Parse the RFC822 message to extract HTML and text parts
+        let (htmlPart, textPart) = parseEmailBody(bodyString)
 
         // Save the extracted content
-        message.bodyHTML = bodyHTML
-        message.bodyText = bodyText
+        message.bodyHTML = htmlPart
+        message.bodyText = textPart
+
+        // If we got nothing, use the raw body as text fallback
+        if (htmlPart == nil || htmlPart!.isEmpty) && (textPart == nil || textPart!.isEmpty) {
+            Logger.warning("No HTML or text extracted, using raw body as text", category: logCategory)
+            message.bodyText = bodyString
+        }
+
+        // Mark as read since we fetched the body
+        if !message.isRead {
+            message.isRead = true
+        }
 
         // Save changes
         try modelContext.save()
@@ -555,7 +540,6 @@ final class AccountManager: @unchecked Sendable {
         let client = IMAPClient(
             host: account.imapHost,
             port: account.imapPort,
-            useTLS: account.imapUseTLS,
             username: account.emailAddress,
             password: password
         )

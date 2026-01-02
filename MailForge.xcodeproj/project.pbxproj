@@ -37,6 +37,7 @@
 		8FBA757F2EFEC2E10003079C /* TestData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FBA757E2EFEC2E10003079C /* TestData.swift */; };
 		8FBA75812EFEC98C0003079C /* IMAPTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FBA75802EFEC98C0003079C /* IMAPTestView.swift */; };
 		8FBA75842EFF305E0003079C /* OAuth2Manager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FBA75822EFF305E0003079C /* OAuth2Manager.swift */; };
+		8FD243242F07293E000BB19E /* SwiftMail in Frameworks */ = {isa = PBXBuildFile; productRef = 8FD243232F07293E000BB19E /* SwiftMail */; };
 		8FE8C4AF2EFCEF5600889A71 /* MessageListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FE8C4AC2EFCEF5600889A71 /* MessageListView.swift */; };
 		8FE8C4B02EFCEF5600889A71 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FE8C4AD2EFCEF5600889A71 /* SidebarView.swift */; };
 		8FE8C4B12EFCEF5600889A71 /* MessageDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FE8C4AB2EFCEF5600889A71 /* MessageDetailView.swift */; };
@@ -50,10 +51,6 @@
 		A10000020 /* DSButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000020 /* DSButton.swift */; };
 		A10000021 /* DSTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000021 /* DSTextField.swift */; };
 		A10000022 /* DSCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000022 /* DSCard.swift */; };
-		A10000030 /* NIO in Frameworks */ = {isa = PBXBuildFile; productRef = A30000030 /* NIO */; };
-		A10000031 /* NIOCore in Frameworks */ = {isa = PBXBuildFile; productRef = A30000031 /* NIOCore */; };
-		A10000032 /* NIOPosix in Frameworks */ = {isa = PBXBuildFile; productRef = A30000032 /* NIOPosix */; };
-		A10000033 /* NIOSSL in Frameworks */ = {isa = PBXBuildFile; productRef = A30000033 /* NIOSSL */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -109,10 +106,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10000030 /* NIO in Frameworks */,
-				A10000031 /* NIOCore in Frameworks */,
-				A10000032 /* NIOPosix in Frameworks */,
-				A10000033 /* NIOSSL in Frameworks */,
+				8FD243242F07293E000BB19E /* SwiftMail in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -363,10 +357,7 @@
 			);
 			name = MailForge;
 			packageProductDependencies = (
-				A30000030 /* NIO */,
-				A30000031 /* NIOCore */,
-				A30000032 /* NIOPosix */,
-				A30000033 /* NIOSSL */,
+				8FD243232F07293E000BB19E /* SwiftMail */,
 			);
 			productName = MailForge;
 			productReference = A00000001 /* MailForge.app */;
@@ -397,8 +388,7 @@
 			);
 			mainGroup = A50000000;
 			packageReferences = (
-				A30000040 /* XCRemoteSwiftPackageReference "swift-nio" */,
-				A30000041 /* XCRemoteSwiftPackageReference "swift-nio-ssl" */,
+				8FD243222F07293E000BB19E /* XCRemoteSwiftPackageReference "SwiftMail" */,
 			);
 			productRefGroup = A50000002 /* Products */;
 			projectDirPath = "";
@@ -685,44 +675,21 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		A30000040 /* XCRemoteSwiftPackageReference "swift-nio" */ = {
+		8FD243222F07293E000BB19E /* XCRemoteSwiftPackageReference "SwiftMail" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/swift-nio.git";
+			repositoryURL = "https://github.com/Cocoanetics/SwiftMail.git";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.65.0;
-			};
-		};
-		A30000041 /* XCRemoteSwiftPackageReference "swift-nio-ssl" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/swift-nio-ssl.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.26.0;
+				branch = main;
+				kind = branch;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		A30000030 /* NIO */ = {
+		8FD243232F07293E000BB19E /* SwiftMail */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = A30000040 /* XCRemoteSwiftPackageReference "swift-nio" */;
-			productName = NIO;
-		};
-		A30000031 /* NIOCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A30000040 /* XCRemoteSwiftPackageReference "swift-nio" */;
-			productName = NIOCore;
-		};
-		A30000032 /* NIOPosix */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A30000040 /* XCRemoteSwiftPackageReference "swift-nio" */;
-			productName = NIOPosix;
-		};
-		A30000033 /* NIOSSL */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A30000041 /* XCRemoteSwiftPackageReference "swift-nio-ssl" */;
-			productName = NIOSSL;
+			package = 8FD243222F07293E000BB19E /* XCRemoteSwiftPackageReference "SwiftMail" */;
+			productName = SwiftMail;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
