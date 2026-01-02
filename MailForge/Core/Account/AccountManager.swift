@@ -823,66 +823,55 @@ final class AccountManager: @unchecked Sendable {
         }
 
         // Decode quoted-printable encoding
-        // Step 1: Remove soft line breaks (= at end of line)
+        // Remove soft line breaks (= at end of line)
         decoded = decoded.replacingOccurrences(of: "=\r\n", with: "")
         decoded = decoded.replacingOccurrences(of: "=\n", with: "")
 
-        // Step 2: Decode =XX sequences to bytes, then convert to UTF-8 string
-        var decodedData = Data()
-        var currentIndex = decoded.startIndex
+        // Decode =XX sequences (improved for multi-byte UTF-8)
+        let pattern = "=(\\w{2})"
+        if let regex = try? NSRegularExpression(pattern: pattern) {
+            // Collect all hex bytes first
+            var bytes: [UInt8] = []
+            var lastEnd = 0
+            let nsString = decoded as NSString
+            let matches = regex.matches(in: decoded, range: NSRange(location: 0, length: nsString.length))
 
-        while currentIndex < decoded.endIndex {
-            if decoded[currentIndex] == "=" {
-                // Check if we have at least 2 more characters for =XX
-                let nextIndex = decoded.index(after: currentIndex)
-                guard nextIndex < decoded.endIndex else {
-                    // Malformed, just add the = and continue
-                    decodedData.append(UInt8(ascii: "="))
-                    currentIndex = decoded.index(after: currentIndex)
-                    continue
-                }
-
-                let secondIndex = decoded.index(after: nextIndex)
-                guard secondIndex < decoded.endIndex else {
-                    // Malformed, just add the = and continue
-                    decodedData.append(UInt8(ascii: "="))
-                    currentIndex = decoded.index(after: currentIndex)
-                    continue
-                }
-
-                // Extract the two hex characters
-                let hexString = String(decoded[nextIndex..<decoded.index(after: secondIndex)])
-                if hexString.count == 2, let byte = UInt8(hexString, radix: 16) {
-                    // Valid hex byte
-                    decodedData.append(byte)
-                    currentIndex = decoded.index(after: secondIndex)
-                } else {
-                    // Not valid hex, keep the = and continue
-                    decodedData.append(UInt8(ascii: "="))
-                    currentIndex = decoded.index(after: currentIndex)
-                }
-            } else {
-                // Regular character
-                let char = decoded[currentIndex]
-                if let asciiValue = char.asciiValue {
-                    decodedData.append(asciiValue)
-                } else {
-                    // Non-ASCII character, encode as UTF-8
-                    if let charData = String(char).data(using: .utf8) {
-                        decodedData.append(charData)
+            for match in matches {
+                // Add characters before this match
+                if match.range.location > lastEnd {
+                    let beforeRange = NSRange(location: lastEnd, length: match.range.location - lastEnd)
+                    let beforeText = nsString.substring(with: beforeRange)
+                    if let data = beforeText.data(using: .utf8) {
+                        bytes.append(contentsOf: data)
                     }
                 }
-                currentIndex = decoded.index(after: currentIndex)
+
+                // Decode hex byte
+                let hexRange = match.range(at: 1)
+                let hexString = nsString.substring(with: hexRange)
+                if let byte = UInt8(hexString, radix: 16) {
+                    bytes.append(byte)
+                }
+
+                lastEnd = match.range.location + match.range.length
+            }
+
+            // Add remaining text
+            if lastEnd < nsString.length {
+                let remainingRange = NSRange(location: lastEnd, length: nsString.length - lastEnd)
+                let remainingText = nsString.substring(with: remainingRange)
+                if let data = remainingText.data(using: .utf8) {
+                    bytes.append(contentsOf: data)
+                }
+            }
+
+            // Convert bytes to string
+            if let decodedString = String(bytes: bytes, encoding: .utf8) {
+                return decodedString
             }
         }
 
-        // Convert the decoded bytes to UTF-8 string
-        if let decodedString = String(data: decodedData, encoding: .utf8) {
-            return decodedString
-        }
-
-        // Fallback to original if decoding failed
-        return content
+        return decoded
     }
 
     // MARK: - Validation
