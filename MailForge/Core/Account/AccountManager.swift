@@ -262,12 +262,22 @@ final class AccountManager: @unchecked Sendable {
     ///   - folder: Folder to sync messages for
     ///   - limit: Maximum number of messages to fetch (default: 100, most recent)
     @MainActor
-    func syncMessages(for folder: Folder, limit: Int = 100) async throws {
+    func syncMessages(for folder: Folder, limit: Int = 100, forceResync: Bool = false) async throws {
         guard let account = folder.account else {
             throw AccountError.accountNotFound
         }
 
-        Logger.info("Syncing messages for folder: \(folder.name) (account: \(account.emailAddress))", category: logCategory)
+        Logger.info("Syncing messages for folder: \(folder.name) (account: \(account.emailAddress))\(forceResync ? " [FORCE RESYNC]" : "")", category: logCategory)
+
+        // If force resync, delete all existing messages first
+        if forceResync {
+            Logger.warning("🔄 Force resync enabled - deleting \(folder.messages.count) old messages from database...", category: logCategory)
+            for message in folder.messages {
+                modelContext.delete(message)
+            }
+            try modelContext.save()
+            Logger.info("✅ Old messages deleted, fetching fresh data from server...", category: logCategory)
+        }
 
         // Create IMAP client
         let client: IMAPClient
@@ -350,18 +360,11 @@ final class AccountManager: @unchecked Sendable {
             return
         }
 
-        // Fetch recent messages (limit to avoid overwhelming)
-        // For professional client: fetch most recent N messages
-        let startUID = max(1, folderInfo.exists - limit + 1)
-        let uidRange = "\(startUID):*"
+        // Fetch recent messages using sequence numbers (avoids PayloadTooLargeError)
+        // This method directly calculates sequence range from folder.exists without SEARCH ALL
+        Logger.info("Fetching last \(limit) messages using sequence numbers (avoids SEARCH ALL)", category: logCategory)
 
-        Logger.info("Fetching message envelopes for UID range: \(uidRange)", category: logCategory)
-
-        // Fetch only essential data (ENVELOPE + FLAGS) - not full headers to save bandwidth/memory
-        let messagesData = try await client.uidFetch(
-            uidSet: uidRange,
-            items: ["UID", "FLAGS", "ENVELOPE", "RFC822.SIZE", "INTERNALDATE"]
-        )
+        let messagesData = try await client.fetchLastMessagesUsingSequenceNumbers(limit: limit)
         Logger.info("Fetched \(messagesData.count) message envelopes", category: logCategory)
 
         // Get existing message UIDs to avoid duplicates

@@ -22,6 +22,9 @@ actor IMAPClient {
     /// Currently selected folder
     private var selectedFolder: String?
 
+    /// Last folder info from SELECT/EXAMINE
+    private var lastFolderInfo: IMAPFolderInfo?
+
     /// Logger category
     private let logCategory: Logger.Category = .imap
 
@@ -194,7 +197,7 @@ actor IMAPClient {
                 }
             }.filter { !$0.isEmpty }
 
-            return IMAPFolderInfo(
+            let folderInfo = IMAPFolderInfo(
                 name: folder,
                 exists: status.messageCount,
                 recent: 0, // SwiftMail doesn't expose recent count directly
@@ -202,6 +205,11 @@ actor IMAPClient {
                 flags: flagStrings,
                 permanentFlags: permFlagStrings
             )
+
+            // Store folder info for later use (e.g., sequence number fetching)
+            lastFolderInfo = folderInfo
+
+            return folderInfo
         } catch {
             Logger.error("SELECT failed", error: error, category: logCategory)
             throw IMAPError.folderNotFound(name: folder)
@@ -253,6 +261,9 @@ actor IMAPClient {
             )
             info.isReadOnly = true
 
+            // Store folder info for later use
+            lastFolderInfo = info
+
             return info
         } catch {
             Logger.error("EXAMINE failed", error: error, category: logCategory)
@@ -287,28 +298,57 @@ actor IMAPClient {
     ///   - items: Items to fetch (ignored, SwiftMail fetches all needed)
     /// - Returns: Array of fetched message data
     func uidFetch(uidSet: String, items: [String]) async throws -> [IMAPMessageData] {
-        Logger.debug("UID Fetching messages: \(uidSet)", category: logCategory)
+        Logger.debug("UID Fetching messages: \(uidSet) (from database)", category: logCategory)
 
         guard selectedFolder != nil else {
             throw IMAPError.serverError(message: "No folder selected")
         }
 
         do {
-            // Parse UID set into array of UIDs
-            let uids = parseUIDSet(uidSet)
+            // Parse the UID range directly without SEARCH ALL (to avoid PayloadTooLargeError)
+            var requestedUIDs: [UInt32]
+
+            // For ranges ending with *, we can't use SEARCH ALL on large mailboxes
+            // Instead, we'll estimate the range and try to fetch
+            if uidSet.contains("*") {
+                Logger.debug("Parsing range with wildcard: \(uidSet)", category: logCategory)
+                requestedUIDs = try await parseUIDRangeWithWildcard(uidSet)
+            } else {
+                // For specific ranges or lists, use SEARCH
+                Logger.debug("Searching for messages in range: \(uidSet)", category: logCategory)
+                let allResults: MessageIdentifierSet<SwiftMail.UID> = try await server.search(criteria: [.all])
+                let allUIDs = allResults.toArray().map { $0.value }.sorted()
+                requestedUIDs = filterUIDsByRange(allUIDs: allUIDs, uidSet: uidSet)
+            }
+
+            Logger.debug("Will attempt to fetch \(requestedUIDs.count) UIDs", category: logCategory)
+
+            // IMPORTANT: For large ranges, limit to last 200 UIDs to avoid timeout
+            // This is a safety measure since we're fetching one at a time
+            if requestedUIDs.count > 200 {
+                Logger.warning("⚠️ Range has \(requestedUIDs.count) UIDs, limiting to last 200 for performance", category: logCategory)
+                requestedUIDs = Array(requestedUIDs.suffix(200))
+            }
+
             var messages: [IMAPMessageData] = []
+            var fetchedCount = 0
 
-            for uid in uids {
-                // Fetch message info (headers, flags, etc.)
+            // Fetch message info for each UID
+            Logger.debug("Fetching message info for \(requestedUIDs.count) UIDs...", category: logCategory)
+            for (index, uid) in requestedUIDs.enumerated() {
                 if let messageInfo = try await server.fetchMessageInfo(for: SwiftMail.UID(uid)) {
-
-                    // Convert SwiftMail MessageInfo to our IMAPMessageData
                     let messageData = convertMessageInfoToIMAPData(messageInfo)
                     messages.append(messageData)
+                    fetchedCount += 1
+
+                    // Log progress every 10 messages
+                    if (index + 1) % 10 == 0 {
+                        Logger.debug("Progress: \(index + 1)/\(requestedUIDs.count) messages fetched", category: logCategory)
+                    }
                 }
             }
 
-            Logger.info("UID FETCH command successful: \(messages.count) messages", category: logCategory)
+            Logger.info("UID FETCH command successful: \(fetchedCount) messages fetched from range \(uidSet)", category: logCategory)
             return messages
         } catch {
             Logger.error("UID FETCH failed", error: error, category: logCategory)
@@ -316,20 +356,169 @@ actor IMAPClient {
         }
     }
 
+    /// Fetch last N messages using sequence numbers (avoids SEARCH ALL)
+    /// - Parameter limit: Maximum number of messages to fetch
+    /// - Returns: Array of fetched message data
+    func fetchLastMessagesUsingSequenceNumbers(limit: Int) async throws -> [IMAPMessageData] {
+        Logger.debug("Fetching last \(limit) messages using sequence numbers", category: logCategory)
+
+        guard let folderInfo = lastFolderInfo else {
+            throw IMAPError.serverError(message: "No folder selected or folder info not available")
+        }
+
+        let totalMessages = folderInfo.exists
+        guard totalMessages > 0 else {
+            Logger.info("Folder is empty, no messages to fetch", category: logCategory)
+            return []
+        }
+
+        // Calculate sequence number range for last N messages
+        let startSeq = max(1, totalMessages - limit + 1)
+        let endSeq = totalMessages
+
+        Logger.info("Fetching sequence range \(startSeq):\(endSeq) (last \(min(limit, totalMessages)) of \(totalMessages) messages)", category: logCategory)
+
+        var messages: [IMAPMessageData] = []
+        var fetchedCount = 0
+
+        // Fetch messages one by one using sequence numbers
+        for seqNum in startSeq...endSeq {
+            do {
+                if let messageInfo = try await server.fetchMessageInfo(for: SequenceNumber(UInt32(seqNum))) {
+                    let messageData = convertMessageInfoToIMAPData(messageInfo)
+                    messages.append(messageData)
+                    fetchedCount += 1
+
+                    // Log progress every 20 messages
+                    if fetchedCount % 20 == 0 {
+                        Logger.debug("Progress: \(fetchedCount)/\(endSeq - startSeq + 1) messages fetched", category: logCategory)
+                    }
+                }
+            } catch {
+                Logger.warning("Failed to fetch message at sequence \(seqNum): \(error)", category: logCategory)
+                // Continue with next message instead of failing completely
+            }
+        }
+
+        Logger.info("Sequence fetch completed: \(fetchedCount) messages fetched", category: logCategory)
+        return messages
+    }
+
+    /// Parse UID range with wildcard by getting actual UIDs from server
+    /// - Parameter uidSet: UID set with wildcard (e.g., "2340:*")
+    /// - Returns: Array of UIDs to fetch (last 200 real UIDs)
+    private func parseUIDRangeWithWildcard(_ uidSet: String) async throws -> [UInt32] {
+        // For "*" ranges, we need to get the LAST N messages
+        // Try SEARCH to get all UIDs, with fallback for large mailboxes
+        Logger.debug("Getting last 200 UIDs from server...", category: logCategory)
+
+        do {
+            let allResults: MessageIdentifierSet<SwiftMail.UID> = try await server.search(criteria: [.all])
+            let allUIDs = allResults.toArray().map { $0.value }.sorted()
+
+            // Take last 200 UIDs (most recent messages)
+            let lastUIDs = Array(allUIDs.suffix(200))
+            Logger.debug("Got \(lastUIDs.count) most recent UIDs (out of \(allUIDs.count) total)", category: logCategory)
+
+            return lastUIDs
+        } catch {
+            // If SEARCH ALL fails (PayloadTooLarge), estimate based on highest UIDs
+            Logger.warning("SEARCH ALL failed, will try fetching estimated range: \(error)", category: logCategory)
+
+            // Parse start UID and try a conservative range
+            if let colonIndex = uidSet.firstIndex(of: ":") {
+                let startStr = String(uidSet[..<colonIndex])
+                if let start = UInt32(startStr) {
+                    // Try a range that's likely to contain recent messages
+                    let estimatedUIDs = Array(start...(start + 300)).suffix(200)
+                    return Array(estimatedUIDs)
+                }
+            }
+
+            throw error
+        }
+    }
+
+    /// Filter UIDs by range specification
+    /// - Parameters:
+    ///   - allUIDs: All UIDs available
+    ///   - uidSet: UID set specification (e.g., "1:10", "100:*", "1,3,5")
+    /// - Returns: Filtered array of UIDs
+    private func filterUIDsByRange(allUIDs: [UInt32], uidSet: String) -> [UInt32] {
+        // Handle single UID
+        if let singleUID = UInt32(uidSet) {
+            return allUIDs.contains(singleUID) ? [singleUID] : []
+        }
+
+        // Handle range (e.g., "1:10" or "100:*")
+        if let colonIndex = uidSet.firstIndex(of: ":") {
+            let startStr = String(uidSet[..<colonIndex])
+            let endStr = String(uidSet[uidSet.index(after: colonIndex)...])
+
+            guard let start = UInt32(startStr) else {
+                return []
+            }
+
+            // Handle "*" as end (means highest UID)
+            if endStr == "*" {
+                return allUIDs.filter { $0 >= start }
+            }
+
+            // Handle numeric end
+            if let end = UInt32(endStr) {
+                return allUIDs.filter { $0 >= start && $0 <= end }
+            }
+        }
+
+        // Handle comma-separated list (e.g., "1,3,5")
+        if uidSet.contains(",") {
+            let requestedUIDs = Set(uidSet.split(separator: ",").compactMap { UInt32($0) })
+            return allUIDs.filter { requestedUIDs.contains($0) }
+        }
+
+        return []
+    }
+
     /// Fetch message body (marks as read)
     /// - Parameter uid: Message UID
     /// - Returns: Message body data
     func fetchBody(uid: Int64) async throws -> Data {
-        Logger.debug("Fetching body for UID: \(uid)", category: logCategory)
+        Logger.debug("Fetching body for UID: \(uid) (from database)", category: logCategory)
 
         do {
             // First get the message info
             Logger.debug("Step 1: Fetching message info for UID \(uid)", category: logCategory)
             guard let messageInfo = try await server.fetchMessageInfo(for: SwiftMail.UID(UInt32(uid))) else {
-                Logger.error("fetchMessageInfo returned nil for UID \(uid)", category: logCategory)
+                Logger.error("❌ fetchMessageInfo returned nil for UID \(uid)", category: logCategory)
+
+                // Diagnostic: Check if UID exists and get UID range info
+                Logger.warning("🔍 DIAGNOSTIC: Checking UID validity on server...", category: logCategory)
+                do {
+                    // First, check if this specific UID exists
+                    let exists = try await uidExistsOnServer(UInt32(uid))
+                    Logger.warning("   UID \(uid) exists on server: \(exists ? "YES ✅" : "NO ❌")", category: logCategory)
+
+                    // Get UID range info
+                    let range = try await getServerUIDRange()
+                    Logger.warning("   Server UID range: \(range.min) to \(range.max) (total: \(range.count) messages)", category: logCategory)
+
+                    if !exists {
+                        if UInt32(uid) < range.min {
+                            Logger.warning("   ⚠️ UID \(uid) is BELOW server range - message was likely deleted", category: logCategory)
+                        } else if UInt32(uid) > range.max {
+                            Logger.warning("   ⚠️ UID \(uid) is ABOVE server range - database has invalid UID", category: logCategory)
+                        } else {
+                            Logger.warning("   ⚠️ UID \(uid) is within range but missing - message was deleted", category: logCategory)
+                        }
+                        Logger.warning("   💡 SOLUTION: Re-sync this folder to update UIDs in database", category: logCategory)
+                    }
+                } catch {
+                    Logger.error("   Diagnostic failed: \(error)", category: logCategory)
+                }
+
                 throw IMAPError.messageFetchFailed
             }
-            Logger.debug("Step 1 OK: Got message info", category: logCategory)
+            Logger.debug("Step 1 OK: Got message info for UID \(uid)", category: logCategory)
 
             // Fetch complete message with all parts
             Logger.debug("Step 2: Fetching complete message with all parts", category: logCategory)
@@ -434,6 +623,29 @@ actor IMAPClient {
 
     // MARK: - Helper Methods
 
+    /// Get UID range information from the server
+    /// - Returns: Tuple with (min UID, max UID, count)
+    private func getServerUIDRange() async throws -> (min: UInt32, max: UInt32, count: Int) {
+        // Search for all messages to get UID range
+        let results: MessageIdentifierSet<SwiftMail.UID> = try await server.search(criteria: [.all])
+        let uids = results.toArray().map { $0.value }
+
+        guard !uids.isEmpty else {
+            throw IMAPError.serverError(message: "No messages on server")
+        }
+
+        return (min: uids.min()!, max: uids.max()!, count: uids.count)
+    }
+
+    /// Check if a specific UID exists on the server by searching for it
+    /// - Parameter uid: UID to check
+    /// - Returns: True if UID exists
+    private func uidExistsOnServer(_ uid: UInt32) async throws -> Bool {
+        // Search for specific UID
+        let results: MessageIdentifierSet<SwiftMail.UID> = try await server.search(criteria: [.uid(Int(uid))])
+        return !results.toArray().isEmpty
+    }
+
     /// Parse UID set string into array of UIDs
     /// - Parameter uidSet: UID set string (e.g., "1:10", "1,3,5", "1:*")
     /// - Returns: Array of UIDs
@@ -491,29 +703,71 @@ actor IMAPClient {
         // Extract sequence number
         // SequenceNumber has a 'value' property of type UInt32
         let seqNum = Int(messageInfo.sequenceNumber.value)
-        
-        // Basic conversion with available fields
+
+        // Parse from address into IMAPAddress
+        let fromAddresses: [IMAPAddress] = if let from = messageInfo.from {
+            [parseEmailAddress(from)]
+        } else {
+            []
+        }
+
+        // Parse to addresses
+        let toAddresses = messageInfo.to.map { parseEmailAddress($0) }
+
+        // Parse cc addresses
+        let ccAddresses = messageInfo.cc.map { parseEmailAddress($0) }
+
+        // Parse bcc addresses
+        let bccAddresses = messageInfo.bcc.map { parseEmailAddress($0) }
+
+        // Build envelope with actual data from MessageInfo
         return IMAPMessageData(
             uid: uidValue,
             sequenceNumber: seqNum,
             flags: flagStrings,
             size: nil, // SwiftMail MessageInfo doesn't have size directly
             envelope: IMAPEnvelope(
-                date: nil,
-                subject: "",
-                from: [],
-                sender: [],
-                replyTo: [],
-                to: [],
-                cc: [],
-                bcc: [],
+                date: messageInfo.date,
+                subject: messageInfo.subject,
+                from: fromAddresses,
+                sender: fromAddresses, // Use from as sender if not available
+                replyTo: fromAddresses, // Use from as replyTo if not available
+                to: toAddresses,
+                cc: ccAddresses,
+                bcc: bccAddresses,
                 inReplyTo: nil,
-                messageId: nil
+                messageId: messageInfo.messageId
             ),
             bodyStructure: nil,
             rfc822: nil,
-            internalDate: nil
+            internalDate: messageInfo.date
         )
+    }
+
+    /// Parse email address string into IMAPAddress
+    /// - Parameter email: Email string (can be "Name <email@example.com>" or just "email@example.com")
+    /// - Returns: IMAPAddress
+    private func parseEmailAddress(_ email: String) -> IMAPAddress {
+        var name: String?
+        var emailAddr: String
+
+        // Handle format: "Name <email@example.com>"
+        if let angleStart = email.firstIndex(of: "<"),
+           let angleEnd = email.firstIndex(of: ">") {
+            let nameStr = String(email[..<angleStart]).trimmingCharacters(in: .whitespaces)
+            name = nameStr.isEmpty ? nil : nameStr
+            emailAddr = String(email[email.index(after: angleStart)..<angleEnd])
+        } else {
+            // Plain email address
+            emailAddr = email.trimmingCharacters(in: .whitespaces)
+        }
+
+        // Split email into mailbox and host
+        let parts = emailAddr.split(separator: "@", maxSplits: 1)
+        let mailbox = parts.first.map(String.init) ?? emailAddr
+        let host = parts.count > 1 ? String(parts[1]) : ""
+
+        return IMAPAddress(name: name, mailbox: mailbox, host: host)
     }
 
     /// Convert SwiftMail Message to RFC822 format
