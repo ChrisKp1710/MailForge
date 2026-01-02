@@ -731,56 +731,96 @@ final class AccountManager: @unchecked Sendable {
             for part in parts {
                 let trimmedPart = part.trimmingCharacters(in: .whitespacesAndNewlines)
 
+                // Extract Content-Transfer-Encoding if present
+                var transferEncoding: String?
+                let partLines = trimmedPart.components(separatedBy: .newlines)
+                for line in partLines {
+                    if line.lowercased().hasPrefix("content-transfer-encoding:") {
+                        transferEncoding = line.components(separatedBy: ":").dropFirst().joined(separator: ":").trimmingCharacters(in: .whitespaces)
+                        break
+                    }
+                }
+
                 // Check if this part is HTML
                 if trimmedPart.lowercased().contains("content-type: text/html") {
                     // Extract HTML content after headers
                     if let bodyStart = trimmedPart.range(of: "\n\n") ?? trimmedPart.range(of: "\r\n\r\n") {
-                        htmlPart = String(trimmedPart[bodyStart.upperBound...])
+                        let rawContent = String(trimmedPart[bodyStart.upperBound...])
+                        htmlPart = decodeEmailContent(rawContent, encoding: transferEncoding)
                     }
                 }
                 // Check if this part is plain text
                 else if trimmedPart.lowercased().contains("content-type: text/plain") {
                     // Extract text content after headers
                     if let bodyStart = trimmedPart.range(of: "\n\n") ?? trimmedPart.range(of: "\r\n\r\n") {
-                        textPart = String(trimmedPart[bodyStart.upperBound...])
+                        let rawContent = String(trimmedPart[bodyStart.upperBound...])
+                        textPart = decodeEmailContent(rawContent, encoding: transferEncoding)
                     }
                 }
             }
         } else {
             // No multipart, check if entire body is HTML or text
+            // Extract transfer encoding from headers
+            var transferEncoding: String?
+            let headerLines = bodyString.components(separatedBy: .newlines)
+            for line in headerLines {
+                if line.lowercased().hasPrefix("content-transfer-encoding:") {
+                    transferEncoding = line.components(separatedBy: ":").dropFirst().joined(separator: ":").trimmingCharacters(in: .whitespaces)
+                    break
+                }
+            }
+
             if bodyString.lowercased().contains("<html") || bodyString.lowercased().contains("<!doctype") {
                 // Extract HTML after headers
                 if let bodyStart = bodyString.range(of: "\n\n") ?? bodyString.range(of: "\r\n\r\n") {
-                    htmlPart = String(bodyString[bodyStart.upperBound...])
+                    let rawContent = String(bodyString[bodyStart.upperBound...])
+                    htmlPart = decodeEmailContent(rawContent, encoding: transferEncoding)
                 } else {
-                    htmlPart = bodyString
+                    htmlPart = decodeEmailContent(bodyString, encoding: transferEncoding)
                 }
             } else {
                 // Extract text after headers
                 if let bodyStart = bodyString.range(of: "\n\n") ?? bodyString.range(of: "\r\n\r\n") {
-                    textPart = String(bodyString[bodyStart.upperBound...])
+                    let rawContent = String(bodyString[bodyStart.upperBound...])
+                    textPart = decodeEmailContent(rawContent, encoding: transferEncoding)
                 } else {
-                    textPart = bodyString
+                    textPart = decodeEmailContent(bodyString, encoding: transferEncoding)
                 }
             }
-        }
-
-        // Decode quoted-printable and base64 if needed
-        if let html = htmlPart {
-            htmlPart = decodeEmailContent(html)
-        }
-        if let text = textPart {
-            textPart = decodeEmailContent(text)
         }
 
         return (htmlPart, textPart)
     }
 
     /// Decode email content (quoted-printable, base64, etc.)
-    /// - Parameter content: Encoded content
+    /// - Parameters:
+    ///   - content: Encoded content
+    ///   - encoding: Transfer encoding type
     /// - Returns: Decoded content
-    private func decodeEmailContent(_ content: String) -> String {
+    private func decodeEmailContent(_ content: String, encoding: String? = nil) -> String {
         var decoded = content
+
+        // Check if content has base64 encoding
+        let isBase64 = encoding?.lowercased().contains("base64") ?? false ||
+                      content.range(of: "^[A-Za-z0-9+/=\\s]+$", options: .regularExpression) != nil &&
+                      content.count > 100 && !content.contains("<")
+
+        if isBase64 {
+            Logger.debug("Decoding base64 content (\(content.count) chars)", category: logCategory)
+
+            // Remove whitespace and newlines from base64 string
+            let cleanedBase64 = content.replacingOccurrences(of: "\\s", with: "", options: .regularExpression)
+
+            // Decode base64
+            if let data = Data(base64Encoded: cleanedBase64),
+               let decodedString = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) {
+                Logger.info("✅ Base64 decoded successfully: \(decodedString.count) chars", category: logCategory)
+                return decodedString
+            } else {
+                Logger.warning("⚠️ Base64 decoding failed, returning original", category: logCategory)
+                return content
+            }
+        }
 
         // Remove quoted-printable encoding (=XX)
         decoded = decoded.replacingOccurrences(of: "=\r\n", with: "")
