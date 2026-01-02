@@ -508,6 +508,8 @@ final class AccountManager: @unchecked Sendable {
         message.bodyHTML = htmlPart
         message.bodyText = textPart
 
+        Logger.info("💾 Saved to message: bodyHTML=\(htmlPart != nil ? "\(htmlPart!.count) chars" : "nil"), bodyText=\(textPart != nil ? "\(textPart!.count) chars" : "nil")", category: logCategory)
+
         // If we got nothing, use the raw body as text fallback
         if (htmlPart == nil || htmlPart!.isEmpty) && (textPart == nil || textPart!.isEmpty) {
             Logger.warning("No HTML or text extracted, using raw body as text", category: logCategory)
@@ -706,6 +708,8 @@ final class AccountManager: @unchecked Sendable {
     /// - Parameter bodyString: Raw RFC822 message body
     /// - Returns: Tuple of (HTML, Text) parts
     private func parseEmailBody(_ bodyString: String) -> (html: String?, text: String?) {
+        Logger.debug("📧 Parsing email body (\(bodyString.count) chars)", category: logCategory)
+
         var htmlPart: String?
         var textPart: String?
 
@@ -719,6 +723,7 @@ final class AccountManager: @unchecked Sendable {
                 let parts = line.components(separatedBy: "boundary=")
                 if parts.count > 1 {
                     boundary = parts[1].trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+                    Logger.debug("Found boundary: \(boundary ?? "")", category: logCategory)
                     break
                 }
             }
@@ -789,6 +794,8 @@ final class AccountManager: @unchecked Sendable {
             }
         }
 
+        Logger.debug("📧 Parsing result: HTML=\(htmlPart != nil ? "\(htmlPart!.count) chars" : "nil"), Text=\(textPart != nil ? "\(textPart!.count) chars" : "nil")", category: logCategory)
+
         return (htmlPart, textPart)
     }
 
@@ -798,6 +805,8 @@ final class AccountManager: @unchecked Sendable {
     ///   - encoding: Transfer encoding type
     /// - Returns: Decoded content
     private func decodeEmailContent(_ content: String, encoding: String? = nil) -> String {
+        Logger.debug("🔄 decodeEmailContent called: encoding=\(encoding ?? "nil"), content preview: \(content.prefix(100))...", category: logCategory)
+
         var decoded = content
 
         // Check if content has base64 encoding
@@ -823,6 +832,8 @@ final class AccountManager: @unchecked Sendable {
         }
 
         // Decode quoted-printable encoding
+        Logger.debug("🔤 Decoding quoted-printable...", category: logCategory)
+
         // Remove soft line breaks (= at end of line)
         decoded = decoded.replacingOccurrences(of: "=\r\n", with: "")
         decoded = decoded.replacingOccurrences(of: "=\n", with: "")
@@ -830,6 +841,7 @@ final class AccountManager: @unchecked Sendable {
         // Decode =XX sequences (improved for multi-byte UTF-8)
         let pattern = "=(\\w{2})"
         if let regex = try? NSRegularExpression(pattern: pattern) {
+            Logger.debug("✅ Quoted-printable regex created, decoding \(regex.matches(in: decoded, range: NSRange(location: 0, length: (decoded as NSString).length)).count) sequences", category: logCategory)
             // Collect all hex bytes first
             var bytes: [UInt8] = []
             var lastEnd = 0
@@ -867,10 +879,14 @@ final class AccountManager: @unchecked Sendable {
 
             // Convert bytes to string
             if let decodedString = String(bytes: bytes, encoding: .utf8) {
+                Logger.debug("✅ Quoted-printable decoded successfully: \(decodedString.count) chars", category: logCategory)
                 return decodedString
+            } else {
+                Logger.warning("⚠️ Failed to convert decoded bytes to string", category: logCategory)
             }
         }
 
+        Logger.debug("🔄 Returning decoded content: \(decoded.count) chars, preview: \(decoded.prefix(100))...", category: logCategory)
         return decoded
     }
 

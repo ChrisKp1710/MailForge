@@ -173,6 +173,10 @@ struct MessageDetailView: View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             // Show HTML body if available
             if let htmlBody = message.bodyHTML, !htmlBody.isEmpty {
+                // DEBUG: Log HTML content
+                let _ = print("🌐 MessageDetailView: Rendering HTML body (\(htmlBody.count) chars)")
+                let _ = print("🌐 HTML preview: \(htmlBody.prefix(200))...")
+
                 HTMLEmailView(htmlContent: htmlBody)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -362,61 +366,76 @@ private struct HTMLEmailView: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        // Wrap HTML content with basic styling for better display
-        let wrappedHTML = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-                body {
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    font-size: 14px;
-                    line-height: 1.6;
-                    color: #333;
-                    margin: 0;
-                    padding: 16px;
-                    word-wrap: break-word;
-                }
-                img {
-                    max-width: 100%;
-                    height: auto;
-                }
-                a {
-                    color: #007AFF;
-                    text-decoration: none;
-                }
-                a:hover {
-                    text-decoration: underline;
-                }
-                pre {
-                    background-color: #f5f5f5;
-                    padding: 12px;
-                    border-radius: 4px;
-                    overflow-x: auto;
-                }
-                code {
-                    background-color: #f5f5f5;
-                    padding: 2px 6px;
-                    border-radius: 3px;
-                    font-family: 'SF Mono', Monaco, Consolas, monospace;
-                }
-                blockquote {
-                    border-left: 4px solid #ddd;
-                    margin-left: 0;
-                    padding-left: 16px;
-                    color: #666;
-                }
-            </style>
-        </head>
-        <body>
-        \(htmlContent)
-        </body>
-        </html>
-        """
+        print("🌐 HTMLEmailView.updateNSView: Loading HTML (\(htmlContent.count) chars)")
 
-        webView.loadHTMLString(wrappedHTML, baseURL: nil)
+        // Check if HTML is already a complete document
+        let isCompleteHTML = htmlContent.lowercased().contains("<!doctype") ||
+                            htmlContent.lowercased().contains("<html") ||
+                            htmlContent.lowercased().contains("<head>")
+
+        let finalHTML: String
+        if isCompleteHTML {
+            print("🌐 HTML is already complete, using as-is")
+            // HTML is already complete, use it directly
+            finalHTML = htmlContent
+        } else {
+            print("🌐 HTML is fragment, wrapping in document")
+            // Wrap HTML fragment with basic styling for better display
+            finalHTML = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        font-size: 14px;
+                        line-height: 1.6;
+                        color: #333;
+                        margin: 0;
+                        padding: 16px;
+                        word-wrap: break-word;
+                    }
+                    img {
+                        max-width: 100%;
+                        height: auto;
+                    }
+                    a {
+                        color: #007AFF;
+                        text-decoration: none;
+                    }
+                    a:hover {
+                        text-decoration: underline;
+                    }
+                    pre {
+                        background-color: #f5f5f5;
+                        padding: 12px;
+                        border-radius: 4px;
+                        overflow-x: auto;
+                    }
+                    code {
+                        background-color: #f5f5f5;
+                        padding: 2px 6px;
+                        border-radius: 3px;
+                        font-family: 'SF Mono', Monaco, Consolas, monospace;
+                    }
+                    blockquote {
+                        border-left: 4px solid #ddd;
+                        margin-left: 0;
+                        padding-left: 16px;
+                        color: #666;
+                    }
+                </style>
+            </head>
+            <body>
+            \(htmlContent)
+            </body>
+            </html>
+            """
+        }
+
+        webView.loadHTMLString(finalHTML, baseURL: nil)
     }
 
     func makeCoordinator() -> Coordinator {
@@ -434,6 +453,18 @@ private struct HTMLEmailView: NSViewRepresentable {
                 }
             }
             decisionHandler(.allow)
+        }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            print("🌐 WKWebView: didFinish navigation - HTML loaded successfully")
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            print("❌ WKWebView: didFail navigation - Error: \(error.localizedDescription)")
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            print("❌ WKWebView: didFailProvisionalNavigation - Error: \(error.localizedDescription)")
         }
     }
 }
