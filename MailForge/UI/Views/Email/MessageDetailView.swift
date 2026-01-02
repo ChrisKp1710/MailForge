@@ -174,12 +174,12 @@ struct MessageDetailView: View {
             // Show HTML body if available
             if let htmlBody = message.bodyHTML, !htmlBody.isEmpty {
                 HTMLEmailView(htmlContent: htmlBody)
-                    .frame(minHeight: 400)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             // Show plain text body if available
             } else if let textBody = message.bodyText, !textBody.isEmpty {
                 PlainTextEmailView(textContent: textBody)
-                    .frame(minHeight: 400)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             // Show loading indicator while fetching
             } else if isLoadingBody {

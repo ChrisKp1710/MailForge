@@ -822,27 +822,67 @@ final class AccountManager: @unchecked Sendable {
             }
         }
 
-        // Remove quoted-printable encoding (=XX)
+        // Decode quoted-printable encoding
+        // Step 1: Remove soft line breaks (= at end of line)
         decoded = decoded.replacingOccurrences(of: "=\r\n", with: "")
         decoded = decoded.replacingOccurrences(of: "=\n", with: "")
 
-        // Simple quoted-printable decoding
-        let pattern = "=(\\w{2})"
-        if let regex = try? NSRegularExpression(pattern: pattern) {
-            let matches = regex.matches(in: decoded, range: NSRange(decoded.startIndex..., in: decoded))
-            for match in matches.reversed() {
-                if let range = Range(match.range, in: decoded),
-                   let hexRange = Range(match.range(at: 1), in: decoded) {
-                    let hexString = String(decoded[hexRange])
-                    if let value = Int(hexString, radix: 16),
-                       let scalar = UnicodeScalar(value) {
-                        decoded.replaceSubrange(range, with: String(Character(scalar)))
+        // Step 2: Decode =XX sequences to bytes, then convert to UTF-8 string
+        var decodedData = Data()
+        var currentIndex = decoded.startIndex
+
+        while currentIndex < decoded.endIndex {
+            if decoded[currentIndex] == "=" {
+                // Check if we have at least 2 more characters for =XX
+                let nextIndex = decoded.index(after: currentIndex)
+                guard nextIndex < decoded.endIndex else {
+                    // Malformed, just add the = and continue
+                    decodedData.append(UInt8(ascii: "="))
+                    currentIndex = decoded.index(after: currentIndex)
+                    continue
+                }
+
+                let secondIndex = decoded.index(after: nextIndex)
+                guard secondIndex < decoded.endIndex else {
+                    // Malformed, just add the = and continue
+                    decodedData.append(UInt8(ascii: "="))
+                    currentIndex = decoded.index(after: currentIndex)
+                    continue
+                }
+
+                // Extract the two hex characters
+                let hexString = String(decoded[nextIndex..<decoded.index(after: secondIndex)])
+                if hexString.count == 2, let byte = UInt8(hexString, radix: 16) {
+                    // Valid hex byte
+                    decodedData.append(byte)
+                    currentIndex = decoded.index(after: secondIndex)
+                } else {
+                    // Not valid hex, keep the = and continue
+                    decodedData.append(UInt8(ascii: "="))
+                    currentIndex = decoded.index(after: currentIndex)
+                }
+            } else {
+                // Regular character
+                let char = decoded[currentIndex]
+                if let asciiValue = char.asciiValue {
+                    decodedData.append(asciiValue)
+                } else {
+                    // Non-ASCII character, encode as UTF-8
+                    if let charData = String(char).data(using: .utf8) {
+                        decodedData.append(charData)
                     }
                 }
+                currentIndex = decoded.index(after: currentIndex)
             }
         }
 
-        return decoded
+        // Convert the decoded bytes to UTF-8 string
+        if let decodedString = String(data: decodedData, encoding: .utf8) {
+            return decodedString
+        }
+
+        // Fallback to original if decoding failed
+        return content
     }
 
     // MARK: - Validation
