@@ -29,6 +29,15 @@
 		8F167D362EFC468F0053AAAA /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D332EFC468F0053AAAA /* Logger.swift */; };
 		8F167D372EFC468F0053AAAA /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D302EFC468F0053AAAA /* AppError.swift */; };
 		8F167D392EFCEAEF0053AAAA /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F167D382EFCEAEF0053AAAA /* MainView.swift */; };
+		8F71A3602F0A936300A075BB /* EMAIL_RENDERING_FIX.md in Resources */ = {isa = PBXBuildFile; fileRef = 8F71A35F2F0A936300A075BB /* EMAIL_RENDERING_FIX.md */; };
+		8F71A3622F0A99E400A075BB /* DEBUG_EMAIL_RENDERING.md in Resources */ = {isa = PBXBuildFile; fileRef = 8F71A3612F0A99E400A075BB /* DEBUG_EMAIL_RENDERING.md */; };
+		8F71A3642F0A9A3800A075BB /* CHANGES_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 8F71A3632F0A9A3800A075BB /* CHANGES_SUMMARY.md */; };
+		8F71A3662F0A9A6C00A075BB /* QUICK_START.md in Resources */ = {isa = PBXBuildFile; fileRef = 8F71A3652F0A9A6C00A075BB /* QUICK_START.md */; };
+		8F71A3682F0A9AA400A075BB /* GUIDA_ITALIANA.md in Resources */ = {isa = PBXBuildFile; fileRef = 8F71A3672F0A9AA400A075BB /* GUIDA_ITALIANA.md */; };
+		8F71A36A2F0A9C2800A075BB /* SANDBOX_SECURITY.md in Resources */ = {isa = PBXBuildFile; fileRef = 8F71A3692F0A9C2800A075BB /* SANDBOX_SECURITY.md */; };
+		8F71A36C2F0A9C5600A075BB /* FIX_BUILD_SANDBOX.md in Resources */ = {isa = PBXBuildFile; fileRef = 8F71A36B2F0A9C5600A075BB /* FIX_BUILD_SANDBOX.md */; };
+		8F71A36E2F0A9CA200A075BB /* README_FIXES.md in Resources */ = {isa = PBXBuildFile; fileRef = 8F71A36D2F0A9CA200A075BB /* README_FIXES.md */; };
+		8F71A3702F0A9CB400A075BB /* START_HERE.md in Resources */ = {isa = PBXBuildFile; fileRef = 8F71A36F2F0A9CB400A075BB /* START_HERE.md */; };
 		8FA836612EFF73BA00EE8906 /* GoogleService-Info.plist.example in Resources */ = {isa = PBXBuildFile; fileRef = 8FA836602EFF73BA00EE8906 /* GoogleService-Info.plist.example */; };
 		8FA836622EFF73BA00EE8906 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 8FA8365F2EFF73BA00EE8906 /* GoogleService-Info.plist */; };
 		8FBA757F2EFEC2E10003079C /* TestData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FBA757E2EFEC2E10003079C /* TestData.swift */; };
@@ -73,11 +82,21 @@
 		8F167D322EFC468F0053AAAA /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
 		8F167D332EFC468F0053AAAA /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		8F167D382EFCEAEF0053AAAA /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		8F71A35F2F0A936300A075BB /* EMAIL_RENDERING_FIX.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = EMAIL_RENDERING_FIX.md; sourceTree = "<group>"; };
+		8F71A3612F0A99E400A075BB /* DEBUG_EMAIL_RENDERING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEBUG_EMAIL_RENDERING.md; sourceTree = "<group>"; };
+		8F71A3632F0A9A3800A075BB /* CHANGES_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CHANGES_SUMMARY.md; sourceTree = "<group>"; };
+		8F71A3652F0A9A6C00A075BB /* QUICK_START.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = QUICK_START.md; sourceTree = "<group>"; };
+		8F71A3672F0A9AA400A075BB /* GUIDA_ITALIANA.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = GUIDA_ITALIANA.md; sourceTree = "<group>"; };
+		8F71A3692F0A9C2800A075BB /* SANDBOX_SECURITY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SANDBOX_SECURITY.md; sourceTree = "<group>"; };
+		8F71A36B2F0A9C5600A075BB /* FIX_BUILD_SANDBOX.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FIX_BUILD_SANDBOX.md; sourceTree = "<group>"; };
+		8F71A36D2F0A9CA200A075BB /* README_FIXES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README_FIXES.md; sourceTree = "<group>"; };
+		8F71A36F2F0A9CB400A075BB /* START_HERE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = START_HERE.md; sourceTree = "<group>"; };
 		8FA8365F2EFF73BA00EE8906 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		8FA836602EFF73BA00EE8906 /* GoogleService-Info.plist.example */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "GoogleService-Info.plist.example"; sourceTree = "<group>"; };
 		8FBA757E2EFEC2E10003079C /* TestData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestData.swift; sourceTree = "<group>"; };
 		8FBA75802EFEC98C0003079C /* IMAPTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMAPTestView.swift; sourceTree = "<group>"; };
 		8FBA75822EFF305E0003079C /* OAuth2Manager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuth2Manager.swift; sourceTree = "<group>"; };
+		8FDCDA282F08844000F55AEF /* MailForge.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MailForge.entitlements; sourceTree = "<group>"; };
 		8FE8C4AB2EFCEF5600889A71 /* MessageDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageDetailView.swift; sourceTree = "<group>"; };
 		8FE8C4AC2EFCEF5600889A71 /* MessageListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageListView.swift; sourceTree = "<group>"; };
 		8FE8C4AD2EFCEF5600889A71 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
@@ -235,6 +254,7 @@
 		A50000001 /* MailForge */ = {
 			isa = PBXGroup;
 			children = (
+				8FDCDA282F08844000F55AEF /* MailForge.entitlements */,
 				8FA8365F2EFF73BA00EE8906 /* GoogleService-Info.plist */,
 				8FA836602EFF73BA00EE8906 /* GoogleService-Info.plist.example */,
 				A50000010 /* App */,
@@ -244,6 +264,15 @@
 				A50000014 /* Utils */,
 				A20000003 /* Assets.xcassets */,
 				A20000004 /* MailForge.entitlements */,
+				8F71A35F2F0A936300A075BB /* EMAIL_RENDERING_FIX.md */,
+				8F71A3612F0A99E400A075BB /* DEBUG_EMAIL_RENDERING.md */,
+				8F71A3632F0A9A3800A075BB /* CHANGES_SUMMARY.md */,
+				8F71A3652F0A9A6C00A075BB /* QUICK_START.md */,
+				8F71A3672F0A9AA400A075BB /* GUIDA_ITALIANA.md */,
+				8F71A3692F0A9C2800A075BB /* SANDBOX_SECURITY.md */,
+				8F71A36B2F0A9C5600A075BB /* FIX_BUILD_SANDBOX.md */,
+				8F71A36D2F0A9CA200A075BB /* README_FIXES.md */,
+				8F71A36F2F0A9CB400A075BB /* START_HERE.md */,
 			);
 			path = MailForge;
 			sourceTree = "<group>";
@@ -395,8 +424,17 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8F71A3602F0A936300A075BB /* EMAIL_RENDERING_FIX.md in Resources */,
+				8F71A3702F0A9CB400A075BB /* START_HERE.md in Resources */,
 				A10000003 /* Assets.xcassets in Resources */,
 				8FA836612EFF73BA00EE8906 /* GoogleService-Info.plist.example in Resources */,
+				8F71A36A2F0A9C2800A075BB /* SANDBOX_SECURITY.md in Resources */,
+				8F71A3642F0A9A3800A075BB /* CHANGES_SUMMARY.md in Resources */,
+				8F71A36E2F0A9CA200A075BB /* README_FIXES.md in Resources */,
+				8F71A36C2F0A9C5600A075BB /* FIX_BUILD_SANDBOX.md in Resources */,
+				8F71A3682F0A9AA400A075BB /* GUIDA_ITALIANA.md in Resources */,
+				8F71A3622F0A99E400A075BB /* DEBUG_EMAIL_RENDERING.md in Resources */,
+				8F71A3662F0A9A6C00A075BB /* QUICK_START.md in Resources */,
 				8FA836622EFF73BA00EE8906 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -583,7 +621,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 32252Z5NQN;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_DEBUG_DYLIB = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -616,7 +654,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 32252Z5NQN;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_DEBUG_DYLIB = YES;
 				ENABLE_HARDENED_RUNTIME = YES;

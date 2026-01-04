@@ -774,22 +774,43 @@ actor IMAPClient {
     /// - Parameter message: SwiftMail message
     /// - Returns: RFC822 data
     private func convertMessageToRFC822(_ message: SwiftMail.Message) throws -> Data {
+        Logger.debug("🔄 Converting SwiftMail message to RFC822 format", category: logCategory)
+        Logger.debug("   Message has \(message.parts.count) parts", category: logCategory)
+        
         // Combine all message parts into RFC822 format
         var rfc822String = ""
-
-        // Add message parts
-        for part in message.parts {
+        
+        // Add message parts in order
+        for (index, part) in message.parts.enumerated() {
             if let data = part.data {
+                Logger.debug("   Part \(index + 1): \(data.count) bytes", category: logCategory)
+                
+                // Try to decode as UTF-8 first, then fallback to other encodings
                 if let text = String(data: data, encoding: .utf8) {
                     rfc822String += text
+                    Logger.debug("   Part \(index + 1): Decoded as UTF-8", category: logCategory)
+                } else if let text = String(data: data, encoding: .isoLatin1) {
+                    rfc822String += text
+                    Logger.debug("   Part \(index + 1): Decoded as ISO-Latin-1", category: logCategory)
+                } else if let text = String(data: data, encoding: .ascii) {
+                    rfc822String += text
+                    Logger.debug("   Part \(index + 1): Decoded as ASCII", category: logCategory)
                 } else {
-                    // Binary data, append as-is
+                    // Binary data - this shouldn't happen for text content
+                    // but we'll include it anyway
+                    Logger.warning("   Part \(index + 1): Binary data, using lossy UTF-8", category: logCategory)
                     rfc822String += String(decoding: data, as: UTF8.self)
                 }
+            } else {
+                Logger.warning("   Part \(index + 1): No data", category: logCategory)
             }
         }
-
-        return Data(rfc822String.utf8)
+        
+        let resultData = Data(rfc822String.utf8)
+        Logger.debug("✅ RFC822 conversion complete: \(resultData.count) bytes", category: logCategory)
+        Logger.debug("   Preview: \(rfc822String.prefix(300))...", category: logCategory)
+        
+        return resultData
     }
 
     /// Convert our search criteria to SwiftMail SearchCriteria

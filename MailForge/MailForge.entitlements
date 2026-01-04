@@ -2,14 +2,102 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- =============================================== -->
+	<!-- App Sandbox -->
+	<!-- DISABLED for WKWebView support in development -->
+	<!-- NOTE: Re-enable for App Store distribution -->
+	<!-- =============================================== -->
+	<key>com.apple.security.app-sandbox</key>
+	<false/>
+
+	<!-- =============================================== -->
 	<!-- Network Access -->
+	<!-- Required for IMAP/SMTP email connections -->
+	<!-- =============================================== -->
 	<key>com.apple.security.network.client</key>
 	<true/>
 	<key>com.apple.security.network.server</key>
 	<false/>
 
+	<!-- =============================================== -->
+	<!-- File Access -->
 	<!-- Allow access to user-selected files (for attachments) -->
+	<!-- =============================================== -->
 	<key>com.apple.security.files.user-selected.read-write</key>
 	<true/>
+
+	<!-- =============================================== -->
+	<!-- WKWebView Support -->
+	<!-- Required for rendering HTML emails properly -->
+	<!-- =============================================== -->
+
+	<!-- Allow JIT compilation for WebKit JavaScript engine -->
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+
+	<!-- Allow unsigned executable memory for WebKit -->
+	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+	<true/>
+
+	<!-- Disable library validation to allow WebKit frameworks -->
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
+
+	<!-- =============================================== -->
+	<!-- Hardware Access -->
+	<!-- Optional: For potential future features -->
+	<!-- =============================================== -->
+
+	<!-- Camera access (for potential video calls in future) -->
+	<key>com.apple.security.device.camera</key>
+	<false/>
+
+	<!-- Microphone access (for potential voice features in future) -->
+	<key>com.apple.security.device.microphone</key>
+	<false/>
+
+	<!-- =============================================== -->
+	<!-- Temporary Exception Networks -->
+	<!-- Allow WebKit and system services access -->
+	<!-- =============================================== -->
+	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
+	<array>
+		<!-- WebKit Core Services -->
+		<string>com.apple.WebKit.WebContent</string>
+		<string>com.apple.WebKit.Networking</string>
+		<string>com.apple.WebKit.GPU</string>
+
+		<!-- System Services Required by WebKit -->
+		<string>com.apple.coreservices.launchservicesd</string>
+		<string>com.apple.CoreServices.coreservicesd</string>
+		<string>com.apple.runningboard</string>
+		<string>com.apple.runningboard.process-state</string>
+
+		<!-- Pasteboard for Copy/Paste -->
+		<string>com.apple.pboard</string>
+
+		<!-- Audio Services -->
+		<string>com.apple.audio.AudioComponentRegistrar</string>
+
+		<!-- TCC (Transparency, Consent, and Control) -->
+		<string>com.apple.tccd</string>
+	</array>
+
+	<!-- =============================================== -->
+	<!-- Additional WebKit Entitlements -->
+	<!-- =============================================== -->
+
+	<!-- Allow WebKit to use graphics acceleration -->
+	<key>com.apple.security.cs.allow-dyld-environment-variables</key>
+	<true/>
+
+	<!-- Scripting targets (for JavaScript execution) -->
+	<key>com.apple.security.scripting-targets</key>
+	<dict>
+		<key>com.apple.WebKit.WebContent</key>
+		<array>
+			<string>com.apple.WebKit.WebContent</string>
+		</array>
+	</dict>
 </dict>
 </plist>

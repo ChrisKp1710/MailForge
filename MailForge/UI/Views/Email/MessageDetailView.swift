@@ -15,6 +15,7 @@ struct MessageDetailView: View {
     @State private var showFullHeaders = false
     @State private var isLoadingBody = false
     @State private var bodyLoadError: Error?
+    @State private var showRawHTML = false // Debug: Toggle to see raw HTML
 
     // MARK: - Environment
 
@@ -35,8 +36,9 @@ struct MessageDetailView: View {
 
                 Divider()
 
-                // Body
+                // Body - DON'T put WebView in ScrollView, it needs fixed height
                 messageBody
+                    .frame(minHeight: 400) // Ensure minimum space for WebView
 
                 // Attachments
                 if message.hasAttachments && !message.attachments.isEmpty {
@@ -176,14 +178,62 @@ struct MessageDetailView: View {
                 // DEBUG: Log HTML content
                 let _ = print("🌐 MessageDetailView: Rendering HTML body (\(htmlBody.count) chars)")
                 let _ = print("🌐 HTML preview: \(htmlBody.prefix(200))...")
+                let _ = Logger.debug("🌐 Full HTML starts with: \(htmlBody.prefix(500))", category: .email)
 
-                HTMLEmailView(htmlContent: htmlBody)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Email Content (HTML)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        // Debug toggle
+                        Button {
+                            showRawHTML.toggle()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: showRawHTML ? "eye.slash" : "eye")
+                                Text(showRawHTML ? "Hide Raw" : "Show Raw")
+                            }
+                            .font(.caption)
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                    
+                    if showRawHTML {
+                        // Show raw HTML for debugging
+                        ScrollView {
+                            Text(htmlBody)
+                                .font(.system(.caption, design: .monospaced))
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(8)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(4)
+                        }
+                        .frame(maxHeight: 400)
+                    } else {
+                        // Render HTML
+                        HTMLEmailView(htmlContent: htmlBody)
+                            .frame(maxWidth: .infinity)
+                            .frame(minHeight: 300) // Increased minimum height
+                            .border(Color.blue.opacity(0.3), width: 1) // Debug border to see WebView bounds
+                    }
+                }
 
             // Show plain text body if available
             } else if let textBody = message.bodyText, !textBody.isEmpty {
-                PlainTextEmailView(textContent: textBody)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                let _ = print("📝 MessageDetailView: Rendering plain text body (\(textBody.count) chars)")
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Email Content (Plain Text)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    PlainTextEmailView(textContent: textBody)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
 
             // Show loading indicator while fetching
             } else if isLoadingBody {
@@ -349,122 +399,200 @@ struct MessageDetailView: View {
 
 // MARK: - HTML Email View
 
-/// WebView for rendering HTML email content
+/// Professional WKWebView implementation for rendering HTML emails
+/// Provides full HTML/CSS/JavaScript support with proper security sandboxing
 private struct HTMLEmailView: NSViewRepresentable {
 
     let htmlContent: String
 
     func makeNSView(context: Context) -> WKWebView {
-        let webView = WKWebView()
-        webView.navigationDelegate = context.coordinator
+        // Configure WKWebView preferences for email rendering
+        let configuration = WKWebViewConfiguration()
 
-        // Disable user interaction features for security
-        webView.configuration.preferences.javaScriptEnabled = false
-        webView.configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
+        // Enable JavaScript only for content height calculation
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+
+        // Create WKWebView with configuration
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.navigationDelegate = context.coordinator
+        
+        // Configure appearance
+        webView.setValue(false, forKey: "drawsBackground")
+        
+        // Set autoresizing mask for proper layout
+        webView.autoresizingMask = [.width, .height]
+
+        Logger.info("🌐 WKWebView created and configured", category: .email)
 
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        print("🌐 HTMLEmailView.updateNSView: Loading HTML (\(htmlContent.count) chars)")
+        // Skip if already showing the same content
+        guard context.coordinator.lastLoadedHTML != htmlContent else {
+            Logger.info("🌐 Skipping reload - content unchanged", category: .email)
+            return
+        }
+        
+        context.coordinator.lastLoadedHTML = htmlContent
+        
+        Logger.info("🌐 Loading HTML content (\(htmlContent.count) chars)", category: .email)
+        Logger.info("🌐 HTML preview: \(htmlContent.prefix(200))...", category: .email)
 
-        // Check if HTML is already a complete document
-        let isCompleteHTML = htmlContent.lowercased().contains("<!doctype") ||
-                            htmlContent.lowercased().contains("<html") ||
-                            htmlContent.lowercased().contains("<head>")
-
-        let finalHTML: String
-        if isCompleteHTML {
-            print("🌐 HTML is already complete, using as-is")
-            // HTML is already complete, use it directly
-            finalHTML = htmlContent
-        } else {
-            print("🌐 HTML is fragment, wrapping in document")
-            // Wrap HTML fragment with basic styling for better display
-            finalHTML = """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <style>
+        // Prepare HTML with proper styling and viewport
+        let styledHTML = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src * data: blob: https: http:; font-src 'self' data:; media-src * data: blob:; script-src 'unsafe-inline';">
+            <style>
+                * {
+                    box-sizing: border-box;
+                }
+                html, body {
+                    margin: 0;
+                    padding: 0;
+                    overflow-x: hidden;
+                    width: 100%;
+                }
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    color: #1d1d1f;
+                    padding: 16px;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                    background-color: transparent;
+                    max-width: 100%;
+                }
+                @media (prefers-color-scheme: dark) {
                     body {
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                        font-size: 14px;
-                        line-height: 1.6;
-                        color: #333;
-                        margin: 0;
-                        padding: 16px;
-                        word-wrap: break-word;
-                    }
-                    img {
-                        max-width: 100%;
-                        height: auto;
+                        color: #f5f5f7;
                     }
                     a {
-                        color: #007AFF;
-                        text-decoration: none;
+                        color: #0a84ff;
                     }
-                    a:hover {
-                        text-decoration: underline;
-                    }
+                }
+                a {
+                    color: #007AFF;
+                    text-decoration: none;
+                }
+                a:hover {
+                    text-decoration: underline;
+                }
+                img {
+                    max-width: 100%;
+                    height: auto;
+                    display: block;
+                }
+                table {
+                    border-collapse: collapse;
+                    max-width: 100%;
+                    width: auto !important;
+                }
+                td, th {
+                    padding: 4px 8px;
+                }
+                pre {
+                    background-color: #f5f5f7;
+                    padding: 12px;
+                    border-radius: 8px;
+                    overflow-x: auto;
+                    white-space: pre-wrap;
+                }
+                @media (prefers-color-scheme: dark) {
                     pre {
-                        background-color: #f5f5f5;
-                        padding: 12px;
-                        border-radius: 4px;
-                        overflow-x: auto;
+                        background-color: #2d2d2d;
                     }
-                    code {
-                        background-color: #f5f5f5;
-                        padding: 2px 6px;
-                        border-radius: 3px;
-                        font-family: 'SF Mono', Monaco, Consolas, monospace;
-                    }
+                }
+                blockquote {
+                    border-left: 3px solid #007AFF;
+                    margin-left: 0;
+                    padding-left: 16px;
+                    color: #6e6e73;
+                }
+                @media (prefers-color-scheme: dark) {
                     blockquote {
-                        border-left: 4px solid #ddd;
-                        margin-left: 0;
-                        padding-left: 16px;
-                        color: #666;
+                        color: #98989d;
                     }
-                </style>
-            </head>
-            <body>
-            \(htmlContent)
-            </body>
-            </html>
-            """
-        }
+                }
+                /* Force email content to fit */
+                .email-content {
+                    max-width: 100% !important;
+                    overflow-x: hidden !important;
+                }
+            </style>
+            <script>
+                // Notify when content is loaded
+                window.addEventListener('load', function() {
+                    console.log('📧 Email content loaded');
+                });
+            </script>
+        </head>
+        <body>
+            <div class="email-content">
+        \(htmlContent)
+            </div>
+        </body>
+        </html>
+        """
 
-        webView.loadHTMLString(finalHTML, baseURL: nil)
+        Logger.info("🌐 Styled HTML length: \(styledHTML.count) chars", category: .email)
+
+        // Load HTML content with base URL for relative resources
+        webView.loadHTMLString(styledHTML, baseURL: nil)
+        
+        Logger.info("🌐 loadHTMLString called, waiting for load to complete...", category: .email)
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
     }
 
+    // MARK: - Coordinator
+
     class Coordinator: NSObject, WKNavigationDelegate {
-        // Intercept link clicks to open in default browser instead of in webview
+        var lastLoadedHTML: String?
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            Logger.info("✅ WKWebView finished loading HTML content", category: .email)
+            
+            // Log the page title to verify content loaded
+            webView.evaluateJavaScript("document.body.innerHTML.length") { result, error in
+                if let length = result as? Int {
+                    Logger.info("✅ HTML body length in DOM: \(length) chars", category: .email)
+                } else if let error = error {
+                    Logger.error("❌ Failed to get body length", error: error, category: .email)
+                }
+            }
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            Logger.error("❌ WKWebView navigation failed", error: error, category: .email)
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            Logger.error("❌ WKWebView provisional navigation failed", error: error, category: .email)
+        }
+        
+        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+            Logger.info("🌐 WKWebView started loading", category: .email)
+        }
+
+        // Handle link clicks - open in default browser
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             if navigationAction.navigationType == .linkActivated {
                 if let url = navigationAction.request.url {
                     NSWorkspace.shared.open(url)
+                    Logger.info("🔗 Opening external link: \(url)", category: .email)
                     decisionHandler(.cancel)
                     return
                 }
             }
             decisionHandler(.allow)
-        }
-
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            print("🌐 WKWebView: didFinish navigation - HTML loaded successfully")
-        }
-
-        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            print("❌ WKWebView: didFail navigation - Error: \(error.localizedDescription)")
-        }
-
-        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-            print("❌ WKWebView: didFailProvisionalNavigation - Error: \(error.localizedDescription)")
         }
     }
 }

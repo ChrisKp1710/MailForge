@@ -722,8 +722,26 @@ final class AccountManager: @unchecked Sendable {
             if line.lowercased().contains("boundary=") {
                 let parts = line.components(separatedBy: "boundary=")
                 if parts.count > 1 {
-                    boundary = parts[1].trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                    Logger.debug("Found boundary: \(boundary ?? "")", category: logCategory)
+                    // Remove quotes and whitespace
+                    var boundaryValue = parts[1].trimmingCharacters(in: .whitespaces)
+                    
+                    // Handle quoted boundaries: boundary="something" or boundary='something'
+                    if boundaryValue.hasPrefix("\"") && boundaryValue.contains("\"", range: 1) {
+                        // Extract until closing quote
+                        let endQuoteIndex = boundaryValue.firstIndex(of: "\"", startingFrom: 1) ?? boundaryValue.endIndex
+                        boundaryValue = String(boundaryValue[boundaryValue.index(after: boundaryValue.startIndex)..<endQuoteIndex])
+                    } else if boundaryValue.hasPrefix("'") && boundaryValue.contains("'", range: 1) {
+                        let endQuoteIndex = boundaryValue.firstIndex(of: "'", startingFrom: 1) ?? boundaryValue.endIndex
+                        boundaryValue = String(boundaryValue[boundaryValue.index(after: boundaryValue.startIndex)..<endQuoteIndex])
+                    } else {
+                        // No quotes, take until semicolon or end of line
+                        if let semicolonIndex = boundaryValue.firstIndex(of: ";") {
+                            boundaryValue = String(boundaryValue[..<semicolonIndex])
+                        }
+                    }
+                    
+                    boundary = boundaryValue.trimmingCharacters(in: CharacterSet(charactersIn: "\"' "))
+                    Logger.debug("Found boundary: '\(boundary ?? "")'", category: logCategory)
                     break
                 }
             }
@@ -751,7 +769,12 @@ final class AccountManager: @unchecked Sendable {
                     // Extract HTML content after headers
                     if let bodyStart = trimmedPart.range(of: "\n\n") ?? trimmedPart.range(of: "\r\n\r\n") {
                         let rawContent = String(trimmedPart[bodyStart.upperBound...])
-                        htmlPart = decodeEmailContent(rawContent, encoding: transferEncoding)
+                        let decodedHTML = decodeEmailContent(rawContent, encoding: transferEncoding)
+                        
+                        // Clean up any remaining MIME artifacts
+                        htmlPart = cleanHTMLContent(decodedHTML)
+                        
+                        Logger.debug("   Extracted HTML part: \(htmlPart?.count ?? 0) chars", category: logCategory)
                     }
                 }
                 // Check if this part is plain text
@@ -760,37 +783,66 @@ final class AccountManager: @unchecked Sendable {
                     if let bodyStart = trimmedPart.range(of: "\n\n") ?? trimmedPart.range(of: "\r\n\r\n") {
                         let rawContent = String(trimmedPart[bodyStart.upperBound...])
                         textPart = decodeEmailContent(rawContent, encoding: transferEncoding)
+                        
+                        Logger.debug("   Extracted text part: \(textPart?.count ?? 0) chars", category: logCategory)
                     }
                 }
             }
         } else {
             // No multipart, check if entire body is HTML or text
-            // Extract transfer encoding from headers
+            Logger.debug("📄 Non-multipart email, processing entire body", category: logCategory)
+
+            // Extract transfer encoding from headers (if present)
             var transferEncoding: String?
             let headerLines = bodyString.components(separatedBy: .newlines)
             for line in headerLines {
                 if line.lowercased().hasPrefix("content-transfer-encoding:") {
                     transferEncoding = line.components(separatedBy: ":").dropFirst().joined(separator: ":").trimmingCharacters(in: .whitespaces)
+                    Logger.debug("Found transfer encoding: \(transferEncoding ?? "nil")", category: logCategory)
                     break
                 }
             }
 
-            if bodyString.lowercased().contains("<html") || bodyString.lowercased().contains("<!doctype") {
-                // Extract HTML after headers
-                if let bodyStart = bodyString.range(of: "\n\n") ?? bodyString.range(of: "\r\n\r\n") {
-                    let rawContent = String(bodyString[bodyStart.upperBound...])
-                    htmlPart = decodeEmailContent(rawContent, encoding: transferEncoding)
-                } else {
-                    htmlPart = decodeEmailContent(bodyString, encoding: transferEncoding)
-                }
+            // Check if body starts with HTML (no headers present)
+            let startsWithHTML = bodyString.lowercased().hasPrefix("<!doctype") ||
+                                bodyString.lowercased().hasPrefix("<html")
+
+            // Extract content after headers (only if headers exist)
+            let rawContent: String
+            if startsWithHTML {
+                // No headers, entire body is content
+                Logger.debug("📄 Body starts with HTML, no headers to strip", category: logCategory)
+                rawContent = bodyString
+            } else if let bodyStart = bodyString.range(of: "\n\n") ?? bodyString.range(of: "\r\n\r\n") {
+                // Headers present, extract after double newline
+                Logger.debug("📄 Headers found, extracting content after separator", category: logCategory)
+                rawContent = String(bodyString[bodyStart.upperBound...])
             } else {
-                // Extract text after headers
-                if let bodyStart = bodyString.range(of: "\n\n") ?? bodyString.range(of: "\r\n\r\n") {
-                    let rawContent = String(bodyString[bodyStart.upperBound...])
-                    textPart = decodeEmailContent(rawContent, encoding: transferEncoding)
-                } else {
-                    textPart = decodeEmailContent(bodyString, encoding: transferEncoding)
-                }
+                // No separator found, use entire body
+                Logger.debug("📄 No header separator found, using entire body", category: logCategory)
+                rawContent = bodyString
+            }
+
+            Logger.debug("📄 Raw content length: \(rawContent.count) chars, preview: \(rawContent.prefix(200))...", category: logCategory)
+
+            // Auto-detect quoted-printable if not specified
+            if transferEncoding == nil && (rawContent.contains("=3D") || rawContent.contains("=\n") || rawContent.contains("=\r\n")) {
+                Logger.debug("📄 Auto-detected quoted-printable encoding", category: logCategory)
+                transferEncoding = "quoted-printable"
+            }
+
+            // Decode content first (base64, quoted-printable, etc.)
+            let decodedContent = decodeEmailContent(rawContent, encoding: transferEncoding)
+
+            Logger.debug("📄 Decoded content length: \(decodedContent.count) chars", category: logCategory)
+
+            // NOW check if decoded content is HTML or text
+            if decodedContent.lowercased().contains("<html") || decodedContent.lowercased().contains("<!doctype") {
+                htmlPart = cleanHTMLContent(decodedContent)
+                Logger.debug("📄 Content classified as HTML (\(htmlPart?.count ?? 0) chars after cleanup)", category: logCategory)
+            } else {
+                textPart = decodedContent
+                Logger.debug("📄 Content classified as text", category: logCategory)
             }
         }
 
@@ -810,9 +862,19 @@ final class AccountManager: @unchecked Sendable {
         var decoded = content
 
         // Check if content has base64 encoding
-        let isBase64 = encoding?.lowercased().contains("base64") ?? false ||
-                      content.range(of: "^[A-Za-z0-9+/=\\s]+$", options: .regularExpression) != nil &&
-                      content.count > 100 && !content.contains("<")
+        let explicitBase64 = encoding?.lowercased().contains("base64") ?? false
+        
+        // Smart base64 detection: only if NO HTML tags present and looks like base64
+        let looksLikeBase64 = !content.contains("<") && 
+                             !content.contains(">") &&
+                             content.count > 100 &&
+                             content.range(of: "^[A-Za-z0-9+/=\\r\\n\\s]{100,}$", options: .regularExpression) != nil
+        
+        let isBase64 = explicitBase64 || looksLikeBase64
+        
+        if looksLikeBase64 {
+            Logger.debug("🔍 Auto-detected base64 (no HTML tags, matches base64 pattern)", category: logCategory)
+        }
 
         if isBase64 {
             Logger.debug("Decoding base64 content (\(content.count) chars)", category: logCategory)
@@ -831,63 +893,122 @@ final class AccountManager: @unchecked Sendable {
             }
         }
 
-        // Decode quoted-printable encoding
+        // Decode quoted-printable encoding (or return as-is if not needed)
+        
+        // Check if content needs quoted-printable decoding
+        let needsQuotedPrintableDecode = encoding?.lowercased().contains("quoted-printable") ?? false ||
+                                         decoded.contains("=3D") ||
+                                         decoded.contains("=20") ||
+                                         decoded.range(of: "=[0-9A-Fa-f]{2}", options: .regularExpression) != nil
+
+        if !needsQuotedPrintableDecode {
+            Logger.debug("ℹ️ Content doesn't need quoted-printable decoding, returning as-is", category: logCategory)
+            return decoded
+        }
+        
         Logger.debug("🔤 Decoding quoted-printable...", category: logCategory)
 
         // Remove soft line breaks (= at end of line)
         decoded = decoded.replacingOccurrences(of: "=\r\n", with: "")
         decoded = decoded.replacingOccurrences(of: "=\n", with: "")
 
+        Logger.debug("🔤 After removing soft line breaks: \(decoded.count) chars, preview: \(decoded.prefix(200))...", category: logCategory)
+
         // Decode =XX sequences (improved for multi-byte UTF-8)
-        let pattern = "=(\\w{2})"
+        let pattern = "=([0-9A-Fa-f]{2})"  // Match =XX where XX is hex (more specific than \\w)
         if let regex = try? NSRegularExpression(pattern: pattern) {
-            Logger.debug("✅ Quoted-printable regex created, decoding \(regex.matches(in: decoded, range: NSRange(location: 0, length: (decoded as NSString).length)).count) sequences", category: logCategory)
-            // Collect all hex bytes first
-            var bytes: [UInt8] = []
-            var lastEnd = 0
             let nsString = decoded as NSString
             let matches = regex.matches(in: decoded, range: NSRange(location: 0, length: nsString.length))
 
-            for match in matches {
-                // Add characters before this match
-                if match.range.location > lastEnd {
-                    let beforeRange = NSRange(location: lastEnd, length: match.range.location - lastEnd)
-                    let beforeText = nsString.substring(with: beforeRange)
-                    if let data = beforeText.data(using: .utf8) {
+            Logger.debug("✅ Quoted-printable regex created, found \(matches.count) sequences to decode", category: logCategory)
+
+            if matches.count > 0 {
+                // Collect all hex bytes first
+                var bytes: [UInt8] = []
+                var lastEnd = 0
+
+                for match in matches {
+                    // Add characters before this match
+                    if match.range.location > lastEnd {
+                        let beforeRange = NSRange(location: lastEnd, length: match.range.location - lastEnd)
+                        let beforeText = nsString.substring(with: beforeRange)
+                        if let data = beforeText.data(using: .utf8) {
+                            bytes.append(contentsOf: data)
+                        }
+                    }
+
+                    // Decode hex byte
+                    let hexRange = match.range(at: 1)
+                    let hexString = nsString.substring(with: hexRange)
+                    if let byte = UInt8(hexString, radix: 16) {
+                        bytes.append(byte)
+                    } else {
+                        Logger.warning("⚠️ Failed to decode hex: \(hexString)", category: logCategory)
+                    }
+
+                    lastEnd = match.range.location + match.range.length
+                }
+
+                // Add remaining text
+                if lastEnd < nsString.length {
+                    let remainingRange = NSRange(location: lastEnd, length: nsString.length - lastEnd)
+                    let remainingText = nsString.substring(with: remainingRange)
+                    if let data = remainingText.data(using: .utf8) {
                         bytes.append(contentsOf: data)
                     }
                 }
 
-                // Decode hex byte
-                let hexRange = match.range(at: 1)
-                let hexString = nsString.substring(with: hexRange)
-                if let byte = UInt8(hexString, radix: 16) {
-                    bytes.append(byte)
+                // Convert bytes to string
+                if let decodedString = String(bytes: bytes, encoding: .utf8) ?? String(bytes: bytes, encoding: .isoLatin1) {
+                    Logger.info("✅ Quoted-printable decoded successfully: \(matches.count) sequences → \(decodedString.count) chars", category: logCategory)
+                    return decodedString
+                } else {
+                    Logger.warning("⚠️ Failed to convert decoded bytes to string", category: logCategory)
                 }
-
-                lastEnd = match.range.location + match.range.length
-            }
-
-            // Add remaining text
-            if lastEnd < nsString.length {
-                let remainingRange = NSRange(location: lastEnd, length: nsString.length - lastEnd)
-                let remainingText = nsString.substring(with: remainingRange)
-                if let data = remainingText.data(using: .utf8) {
-                    bytes.append(contentsOf: data)
-                }
-            }
-
-            // Convert bytes to string
-            if let decodedString = String(bytes: bytes, encoding: .utf8) {
-                Logger.debug("✅ Quoted-printable decoded successfully: \(decodedString.count) chars", category: logCategory)
-                return decodedString
             } else {
-                Logger.warning("⚠️ Failed to convert decoded bytes to string", category: logCategory)
+                // No sequences found, but soft line breaks were removed - return that
+                Logger.debug("ℹ️ No quoted-printable sequences found, returning content with soft line breaks removed", category: logCategory)
+                return decoded
             }
         }
 
-        Logger.debug("🔄 Returning decoded content: \(decoded.count) chars, preview: \(decoded.prefix(100))...", category: logCategory)
+        Logger.debug("🔄 Returning decoded content: \(decoded.count) chars", category: logCategory)
         return decoded
+    }
+    
+    /// Clean HTML content by removing MIME artifacts and whitespace
+    /// - Parameter html: Raw HTML content
+    /// - Returns: Cleaned HTML
+    private func cleanHTMLContent(_ html: String) -> String {
+        var cleaned = html
+        
+        // Remove common MIME boundary artifacts that might remain
+        if let boundaryPattern = try? NSRegularExpression(pattern: "^--.*?$", options: [.anchorsMatchLines]) {
+            let nsString = cleaned as NSString
+            let matches = boundaryPattern.matches(in: cleaned, range: NSRange(location: 0, length: nsString.length))
+            
+            // Remove from end to start to preserve ranges
+            for match in matches.reversed() {
+                let range = match.range
+                if let swiftRange = Range(range, in: cleaned) {
+                    cleaned.removeSubrange(swiftRange)
+                }
+            }
+        }
+        
+        // Trim whitespace and newlines from start and end
+        cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // If HTML doesn't start with < but contains HTML, find where it starts
+        if !cleaned.hasPrefix("<") {
+            if let htmlStart = cleaned.range(of: "<", options: .literal) {
+                cleaned = String(cleaned[htmlStart.lowerBound...])
+            }
+        }
+        
+        Logger.debug("🧹 HTML cleaned: \(html.count) → \(cleaned.count) chars", category: logCategory)
+        
+        return cleaned
     }
 
     // MARK: - Validation
@@ -901,3 +1022,21 @@ final class AccountManager: @unchecked Sendable {
         return emailPredicate.evaluate(with: email)
     }
 }
+
+// MARK: - String Extensions
+
+extension String {
+    /// Find first index of character starting from a given position
+    func firstIndex(of character: Character, startingFrom index: Int) -> String.Index? {
+        let startIndex = self.index(self.startIndex, offsetBy: index)
+        return self[startIndex...].firstIndex(of: character)
+    }
+    
+    /// Check if string contains a substring with optional range
+    func contains(_ substring: String, range: Int) -> Bool {
+        guard range < self.count else { return false }
+        let startIndex = self.index(self.startIndex, offsetBy: range)
+        return self[startIndex...].contains(substring)
+    }
+}
+
